@@ -15,6 +15,7 @@ import {
 import { BonDialog } from "./BonDialog";
 import { MobileNavButton } from "./components";
 import { bons, navigation, type PageKey } from "./data";
+import { LoginPage } from "./LoginPage";
 import {
   BonsPage,
   CustomersPage,
@@ -26,6 +27,7 @@ import {
 } from "./pages";
 
 export default function App() {
+  const [signedIn, setSignedIn] = useState(false);
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bonDialogOpen, setBonDialogOpen] = useState(false);
@@ -41,6 +43,8 @@ export default function App() {
     setActivePage(page);
     setMobileMenuOpen(false);
   };
+
+  if (!signedIn) return <LoginPage onLogin={() => setSignedIn(true)} />;
 
   return (
     <div className="app-shell">
@@ -79,7 +83,7 @@ export default function App() {
             <Settings size={22} />
             <span>Pengaturan</span>
           </button>
-          <button className="nav-item nav-item--danger">
+          <button className="nav-item nav-item--danger" onClick={() => setSignedIn(false)}>
             <LogOut size={22} />
             <span>Keluar</span>
           </button>
