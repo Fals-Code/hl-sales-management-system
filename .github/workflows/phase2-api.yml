@@ -1,13 +1,14 @@
-name: Phase 2 API CI
+name: HL Application CI
 
 on:
   push:
-    branches: [phase-2-api]
+    branches: [phase-2-api, phase-3-ui]
   pull_request:
-    branches: [main, phase-2-api]
+    branches: [main, phase-2-api, phase-3-ui]
 
 jobs:
-  validate:
+  api-validate:
+    if: github.ref_name == 'phase-2-api' || github.base_ref == 'phase-2-api' || github.base_ref == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -69,3 +70,29 @@ jobs:
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  frontend-validate:
+    if: github.ref_name == 'phase-3-ui' || github.base_ref == 'phase-3-ui' || github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        run: npm run build
