@@ -1,5 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HL">
-  <rect width="64" height="64" rx="16" fill="#173b5b"/>
-  <path d="M15 17h8v11h18V17h8v30h-8V35H23v12h-8V17Z" fill="#ffffff"/>
-  <path d="M41 17h8v30H31v-7h10V17Z" fill="#8fd3ff" opacity=".92"/>
+  <defs>
+    <linearGradient id="bg" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#244f74"/>
+      <stop offset="1" stop-color="#0f304c"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="20" y1="18" x2="45" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b8e6ff"/>
+      <stop offset="1" stop-color="#67b9ea"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#051729" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#bg)"/>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="none" stroke="#fff" stroke-opacity=".08"/>
+  <g fill="none" stroke="url(#mark)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+    <path d="M22 19V45"/>
+    <path d="M42 19V45"/>
+    <path d="M22 32H42"/>
+  </g>
 </svg>
