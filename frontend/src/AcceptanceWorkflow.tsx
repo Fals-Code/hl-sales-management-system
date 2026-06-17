@@ -1,3 +1,4 @@
+import "./acceptance-detail-polish.css";
 import { AcceptanceBonDetailPageV2 } from "./AcceptanceBonDetailV2";
 import { AcceptanceSettlementPageV2 } from "./AcceptanceSettlementV2";
 
