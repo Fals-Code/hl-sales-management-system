@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { ApiContext, AuthenticatedRequest } from "../types";
-import { moneySchema, paginationSchema, productTypeSchema } from "../schemas/common";
+import { booleanQuerySchema, moneySchema, paginationSchema, productTypeSchema } from "../schemas/common";
 import { paginationMeta, send } from "./helpers";
 
 const discountTierSchema = z.object({ productType: productTypeSchema, sequence: z.number().int().positive(), percentBps: z.number().int().min(0).max(10000) }).strict();
@@ -22,24 +22,40 @@ const thresholdSchema = z.object({ bonusThreshold: moneySchema, reason: z.string
 export async function registerCustomerRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/customers", async (request, reply) => {
     const query = paginationSchema
-      .extend({ active: z.coerce.boolean().optional(), hasBonus: z.coerce.boolean().optional() })
+      .extend({ active: booleanQuerySchema.optional(), hasBonus: booleanQuerySchema.optional() })
       .parse(request.query);
     const where: Prisma.CustomerWhereInput = {
-      ...(query.active === false ? {} : { deletedAt: null }),
+      deletedAt: query.active === false ? { not: null } : null,
       ...(query.search ? { OR: [{ name: { contains: query.search, mode: "insensitive" } }, { code: { contains: query.search, mode: "insensitive" } }] } : {})
     };
-    const [total, rows] = await Promise.all([
-      ctx.db.customer.count({ where }),
-      ctx.db.customer.findMany({
-        where,
-        include: { discountTiers: true },
-        orderBy: orderBy(query.sortBy, query.sortOrder),
-        skip: (query.page - 1) * query.limit,
-        take: query.limit
-      })
-    ]);
-    const filtered = query.hasBonus ? rows.filter((row) => row.bonusThreshold > 0n) : rows;
-    return send(reply, filtered, 200, paginationMeta(total, query.page, query.limit));
+
+    if (query.hasBonus === undefined) {
+      const [total, rows] = await Promise.all([
+        ctx.db.customer.count({ where }),
+        ctx.db.customer.findMany({
+          where,
+          include: { discountTiers: true },
+          orderBy: orderBy(query.sortBy, query.sortOrder),
+          skip: (query.page - 1) * query.limit,
+          take: query.limit
+        })
+      ]);
+      return send(reply, rows, 200, paginationMeta(total, query.page, query.limit));
+    }
+
+    const candidates = await ctx.db.customer.findMany({
+      where,
+      include: { discountTiers: true },
+      orderBy: orderBy(query.sortBy, query.sortOrder)
+    });
+    const withAvailability = await Promise.all(
+      candidates.map(async (customer) => ({ customer, availability: await ctx.bonus.getAvailability(customer.id) }))
+    );
+    const filtered = withAvailability
+      .filter(({ availability }) => (availability.availableUnits > 0) === query.hasBonus)
+      .map(({ customer, availability }) => ({ ...customer, bonusAvailability: availability }));
+    const start = (query.page - 1) * query.limit;
+    return send(reply, filtered.slice(start, start + query.limit), 200, paginationMeta(filtered.length, query.page, query.limit));
   });
 
   app.get("/api/v1/customers/:id", async (request, reply) => {
