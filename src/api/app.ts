@@ -28,7 +28,9 @@ import { registerReportRoutes } from "./routes/reports";
 import { registerSettlementRoutes } from "./routes/settlements";
 import type { ApiContext } from "./types";
 
-export async function buildApp(options: { db?: PrismaClient; logger?: boolean } = {}) {
+export async function buildApp(
+  options: { db?: PrismaClient; logger?: boolean } = {},
+) {
   const db = options.db ?? prisma;
   const auth = new AuthService(db);
   const ctx: ApiContext = {
@@ -47,8 +49,8 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
       sameSite: "lax",
       secure: process.env.SESSION_COOKIE_SECURE === "true",
       path: "/",
-      maxAge: Number(process.env.SESSION_MAX_AGE ?? 60 * 60 * 12)
-    }
+      maxAge: Number(process.env.SESSION_MAX_AGE ?? 60 * 60 * 12),
+    },
   };
 
   const app = Fastify({
@@ -56,21 +58,32 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
       options.logger === false
         ? false
         : {
-            redact: ["req.headers.cookie", "req.body.password", "req.body.ownerPin", "res.headers.set-cookie"]
+            redact: [
+              "req.headers.cookie",
+              "req.body.password",
+              "req.body.ownerPin",
+              "res.headers.set-cookie",
+            ],
           },
-    genReqId: (request) => String(request.headers["x-request-id"] ?? randomUUID())
+    genReqId: (request) =>
+      String(request.headers["x-request-id"] ?? randomUUID()),
   });
 
   app.setErrorHandler(errorHandler);
   await app.register(cookie);
   await app.register(helmet);
-  await app.register(cors, { origin: process.env.FRONTEND_ORIGIN ?? false, credentials: true });
+  await app.register(cors, {
+    origin: process.env.FRONTEND_ORIGIN ?? false,
+    credentials: true,
+  });
   await app.register(rateLimit, { max: 200, timeWindow: "1 minute" });
   await app.register(swagger, {
     openapi: {
       info: { title: "HL Backend API", version: "0.2.0" },
       components: {
-        securitySchemes: { cookieAuth: { type: "apiKey", in: "cookie", name: ctx.cookieName } },
+        securitySchemes: {
+          cookieAuth: { type: "apiKey", in: "cookie", name: ctx.cookieName },
+        },
         schemas: {
           SuccessEnvelope: {
             type: "object",
@@ -78,8 +91,8 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
             properties: {
               success: { type: "boolean", enum: [true] },
               data: {},
-              meta: { type: "object", additionalProperties: true }
-            }
+              meta: { type: "object", additionalProperties: true },
+            },
           },
           ErrorEnvelope: {
             type: "object",
@@ -92,14 +105,14 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
                 properties: {
                   code: { type: "string" },
                   message: { type: "string" },
-                  fields: { type: "object", additionalProperties: true }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  fields: { type: "object", additionalProperties: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
@@ -109,7 +122,7 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
     routeOptions.schema = {
       ...routeOptions.schema,
       tags: routeOptions.schema?.tags ?? [openApiTag(routeOptions.url)],
-      security: isLogin ? [] : [{ cookieAuth: [] }]
+      security: isLogin ? [] : [{ cookieAuth: [] }],
     };
   });
   app.addHook("onSend", (request, reply, payload, done) => {
@@ -125,31 +138,37 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
       status: "running",
       health: "/health",
       documentation: "/docs",
-      openapi: "/docs/json"
+      openapi: "/docs/json",
     },
-    meta: {}
+    meta: {},
   }));
-  app.get("/health", () => ({ success: true, data: { status: "ok" }, meta: {} }));
+  app.get("/health", () => ({
+    success: true,
+    data: { status: "ok" },
+    meta: {},
+  }));
   app.get("/favicon.ico", (_request, reply) => reply.status(204).send());
 
   registerAuthRoutes(app, ctx);
   registerCustomerRoutes(app, ctx);
   registerProductRoutes(app, ctx);
-  registerBonRoutes(app, ctx);
-  registerSettlementRoutes(app, ctx);
-  registerBonusRoutes(app, ctx);
+  void registerBonRoutes(app, ctx);
+  void registerSettlementRoutes(app, ctx);
+  void registerBonusRoutes(app, ctx);
   registerReportRoutes(app, ctx);
-  registerPdfRoutes(app, ctx);
+  void registerPdfRoutes(app, ctx);
 
   return app;
 }
 
 function openApiTag(url: string) {
   if (url.includes("/auth/")) return "Authentication";
-  if (url.includes("/customers")) return url.includes("bonus") ? "Bonus" : "Customers";
+  if (url.includes("/customers"))
+    return url.includes("bonus") ? "Bonus" : "Customers";
   if (url.includes("/products")) return "Products";
   if (url.includes("/bons")) return "Transactions";
-  if (url.includes("/settlements") || url.includes("/payments")) return "Settlements";
+  if (url.includes("/settlements") || url.includes("/payments"))
+    return "Settlements";
   if (url.includes("/bonus")) return "Bonus";
   if (url.includes("/reports")) return "Reporting";
   if (url.includes("/pdf")) return "PDF";
