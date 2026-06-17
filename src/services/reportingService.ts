@@ -114,6 +114,31 @@ export class ReportingService {
     });
   }
 
+  async transactionRows(filters: ReportFilters = {}) {
+    return this.db.bon.findMany({
+      where: buildBonWhere(filters, "bon"),
+      include: { customer: true, items: true, paymentLinks: { include: { payment: true } }, voidRecord: true },
+      orderBy: [{ bonDate: "desc" }, { bonNumber: "desc" }]
+    });
+  }
+
+  async receivableRows(filters: ReportFilters = {}) {
+    return this.transactionRows({ ...filters, status: "PIUTANG" });
+  }
+
+  async bonusLogRows(filters: ReportFilters = {}) {
+    const createdAt = buildDateRange(filters.paidAtFrom ?? filters.bonDateFrom, filters.paidAtTo ?? filters.bonDateTo)
+      ?? (filters.month && filters.year ? monthRange(filters.month, filters.year) : undefined);
+    return this.db.bonusLedger.findMany({
+      where: {
+        ...(filters.customerId ? { customerId: filters.customerId } : {}),
+        ...(createdAt ? { createdAt } : {})
+      },
+      include: { customer: true },
+      orderBy: { createdAt: "desc" }
+    });
+  }
+
   private async getNetUsedBonusUnits(customerId?: string) {
     const ledgers = await this.db.bonusLedger.findMany({
       where: { customerId, mutationType: { in: ["USED", "REVERSED"] } }
