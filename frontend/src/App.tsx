@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Accessibility,
   Bell,
   Gift,
   HandCoins,
@@ -26,11 +27,24 @@ import {
   ReportsPage
 } from "./pages";
 
+const pageDescriptions: Record<PageKey, string> = {
+  dashboard: "Ringkasan kondisi toko dan tindakan penting hari ini",
+  customers: "Kelola identitas, diskon, piutang, dan bonus pelanggan",
+  products: "Kelola produk LM dan BR beserta harga dan stok",
+  bons: "Lihat seluruh transaksi penjualan dan status pembayarannya",
+  receivables: "Pantau bon yang belum lunas dan prioritas penagihan",
+  settlements: "Catat pembayaran pelanggan secara aman dan jelas",
+  bonus: "Pantau bonus pelanggan tanpa menambah omzet atau laba",
+  reports: "Baca ringkasan usaha dan unduh laporan yang dibutuhkan",
+  settings: "Atur kenyamanan tampilan dan preferensi aplikasi"
+};
+
 export default function App() {
   const [signedIn, setSignedIn] = useState(false);
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bonDialogOpen, setBonDialogOpen] = useState(false);
+  const [comfortableMode, setComfortableMode] = useState(true);
   const [search, setSearch] = useState("");
 
   const pageTitle = navigation.find((item) => item.key === activePage)?.label ?? "Pengaturan";
@@ -47,7 +61,7 @@ export default function App() {
   if (!signedIn) return <LoginPage onLogin={() => setSignedIn(true)} />;
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${comfortableMode ? "app-shell--comfortable" : ""}`}>
       <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
         <div className="brand-block">
           <div className="brand-mark">HL</div>
@@ -60,6 +74,7 @@ export default function App() {
           </button>
         </div>
 
+        <div className="sidebar-label">Menu utama</div>
         <nav className="sidebar-nav">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -77,6 +92,14 @@ export default function App() {
             );
           })}
         </nav>
+
+        <div className="sidebar-help-card">
+          <Accessibility size={24} />
+          <div>
+            <strong>Tampilan nyaman aktif</strong>
+            <span>Teks dan tombol dibuat lebih besar.</span>
+          </div>
+        </div>
 
         <div className="sidebar-footer">
           <button className={`nav-item ${activePage === "settings" ? "nav-item--active" : ""}`} onClick={() => changePage("settings")}>
@@ -100,8 +123,22 @@ export default function App() {
           <div className="topbar-title">
             <span className="eyebrow">HL Sales Management</span>
             <h1>{pageTitle}</h1>
+            <p className="topbar-context">{pageDescriptions[activePage]}</p>
           </div>
           <div className="topbar-actions">
+            <button
+              className={`comfort-toggle ${comfortableMode ? "comfort-toggle--active" : ""}`}
+              onClick={() => setComfortableMode((value) => !value)}
+              aria-pressed={comfortableMode}
+              title="Ubah ukuran teks dan ruang antarelemen"
+            >
+              <Accessibility size={21} />
+              <span>{comfortableMode ? "Teks besar" : "Teks normal"}</span>
+            </button>
+            <button className="button button--primary topbar-create-button" onClick={() => setBonDialogOpen(true)}>
+              <Plus size={20} />
+              Buat Bon
+            </button>
             <button className="icon-button notification-button" aria-label="Notifikasi">
               <Bell size={23} />
               <span className="notification-dot" />
