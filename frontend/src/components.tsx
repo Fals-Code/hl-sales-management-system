@@ -18,7 +18,13 @@ export function StatusBadge({ status }: { status: BonStatus }) {
   return <span className={`status-badge status-badge--${className}`}>{status}</span>;
 }
 
-export function ResponsiveBonList({ rows }: { rows: BonRow[] }) {
+export function ResponsiveBonList({
+  rows,
+  onViewDetail
+}: {
+  rows: BonRow[];
+  onViewDetail?: (bonNumber: string) => void;
+}) {
   return (
     <div className="responsive-table-wrap">
       <table className="data-table">
@@ -40,7 +46,11 @@ export function ResponsiveBonList({ rows }: { rows: BonRow[] }) {
               <td>{bon.date}</td>
               <td className="money-cell">{formatCurrency(bon.amount)}</td>
               <td><StatusBadge status={bon.status} /></td>
-              <td><button className="text-button">Lihat Detail</button></td>
+              <td>
+                <button className="text-button" type="button" onClick={() => onViewDetail?.(bon.number)}>
+                  Lihat Detail
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -60,7 +70,9 @@ export function ResponsiveBonList({ rows }: { rows: BonRow[] }) {
               <span>{bon.date}</span>
               <strong>{formatCurrency(bon.amount)}</strong>
             </div>
-            <button className="button button--secondary button--full">Lihat Detail</button>
+            <button className="button button--secondary button--full" type="button" onClick={() => onViewDetail?.(bon.number)}>
+              Lihat Detail
+            </button>
           </article>
         ))}
       </div>
