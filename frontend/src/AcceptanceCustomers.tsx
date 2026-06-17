@@ -18,7 +18,7 @@ import {
   WalletCards,
   X
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   acceptanceBons,
   bonusesAvailable,
@@ -75,7 +75,7 @@ export function AcceptanceCustomersPage({
         onSettlement={() => onSettlement(selectedCustomer.code)}
         onViewBon={onViewBon}
       >
-        <CustomerEditor open={editor !== null} mode={editor?.mode ?? "edit"} customer={editor?.customer} onClose={() => setEditor(null)} onSave={saveCustomer} />
+        {editor && <CustomerEditor key={`${editor.mode}-${editor.customer?.code ?? "new"}`} mode={editor.mode} customer={editor.customer} onClose={() => setEditor(null)} onSave={saveCustomer} />}
         <DeleteCustomerDialog customer={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={softDelete} />
       </AcceptanceCustomerDetail>
     );
@@ -112,7 +112,7 @@ export function AcceptanceCustomersPage({
         </div>
       )}
 
-      <CustomerEditor open={editor !== null} mode={editor?.mode ?? "create"} customer={editor?.customer} onClose={() => setEditor(null)} onSave={saveCustomer} />
+      {editor && <CustomerEditor key={`${editor.mode}-${editor.customer?.code ?? "new"}`} mode={editor.mode} customer={editor.customer} onClose={() => setEditor(null)} onSave={saveCustomer} />}
     </section>
   );
 }
@@ -191,12 +191,10 @@ function AcceptanceCustomerDetail({
   );
 }
 
-function CustomerEditor({ open, mode, customer, onClose, onSave }: { open: boolean; mode: "create" | "edit"; customer?: CustomerProfile; onClose: () => void; onSave: (customer: CustomerProfile) => void }) {
+function CustomerEditor({ mode, customer, onClose, onSave }: { mode: "create" | "edit"; customer?: CustomerProfile; onClose: () => void; onSave: (customer: CustomerProfile) => void }) {
   const initial = customer ?? { code: `PLG-${String(customerProfiles.length + 1).padStart(3, "0")}`, name: "", phone: "", address: "", discountLm: [0], discountBr: [0], bonusThreshold: 10_000_000, accumulatedPaidOmzet: 0, bonusesGranted: 0, active: true };
   const [draft, setDraft] = useState<CustomerProfile>(initial);
   const [saved, setSaved] = useState(false);
-
-  if (!open) return null;
   const validDiscounts = [...draft.discountLm, ...draft.discountBr].every((value) => Number.isFinite(value) && value >= 0 && value <= 100);
   const canSave = draft.name.trim().length > 0 && validDiscounts && draft.bonusThreshold >= 0;
 
