@@ -15,7 +15,7 @@ import {
   WalletCards,
   X
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   acceptanceBons,
   calculateBon,
@@ -26,6 +26,7 @@ import {
   type AcceptanceBon,
   type AcceptanceBonStatus
 } from "./acceptance-data";
+import { AcceptanceBonEditDialog } from "./AcceptanceBonEditDialog";
 import { formatCurrency } from "./data";
 
 export function AcceptanceSettlementPage({
@@ -85,7 +86,7 @@ export function AcceptanceSettlementPage({
       {notice && <div className="success-banner" role="status"><CheckCircle2 size={23} /><div><strong>Tindakan berhasil</strong><span>{notice}</span></div></div>}
 
       <section className="acceptance-filter-card settlement-filter-card">
-        <label className="field"><span>Pelanggan</span><div className="input-icon-shell"><UserRound size={21} /><select value={customerCode} onChange={(event) => { setCustomerCode(event.target.value); setSelectedNumbers([]); }}>${""}{customerProfiles.filter((entry) => entry.active).map((entry) => <option value={entry.code} key={entry.code}>{entry.name}</option>)}</select></div></label>
+        <label className="field"><span>Pelanggan</span><div className="input-icon-shell"><UserRound size={21} /><select value={customerCode} onChange={(event) => { setCustomerCode(event.target.value); setSelectedNumbers([]); }}>{customerProfiles.filter((entry) => entry.active).map((entry) => <option value={entry.code} key={entry.code}>{entry.name}</option>)}</select></div></label>
         <label className="field"><span>Bulan</span><select value={month} onChange={(event) => { setMonth(event.target.value); setSelectedNumbers([]); }}><option value="6">Juni</option><option value="5">Mei</option><option value="4">April</option></select></label>
         <label className="field"><span>Tahun</span><select value={year} onChange={(event) => { setYear(event.target.value); setSelectedNumbers([]); }}><option>2026</option><option>2025</option></select></label>
         <label className="field"><span>Tanggal Pelunasan *</span><div className="input-icon-shell"><CalendarDays size={21} /><input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></div></label>
@@ -119,7 +120,8 @@ export function AcceptanceSettlementPage({
 export function AcceptanceBonDetailPage({ bonNumber, onBack, onSettlement }: { bonNumber: string; onBack: () => void; onSettlement: (bonNumber: string) => void }) {
   const sourceBon = acceptanceBons.find((bon) => bon.number === bonNumber) ?? acceptanceBons[0];
   const [status, setStatus] = useState<AcceptanceBonStatus>(sourceBon.status);
-  const [action, setAction] = useState<"delete" | "void" | "edit" | null>(null);
+  const [action, setAction] = useState<"delete" | "void" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [ownerPin, setOwnerPin] = useState("");
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -153,10 +155,10 @@ export function AcceptanceBonDetailPage({ bonNumber, onBack, onSettlement }: { b
           <section className="acceptance-card"><div className="acceptance-card-heading"><div><span className="eyebrow">Informasi Bon</span><h3>Data Transaksi</h3></div><ReceiptText size={24} /></div><dl className="bon-information-grid"><div><dt>Tanggal</dt><dd>{toDisplayDate(sourceBon.date)}</dd></div><div><dt>Status</dt><dd>{status}</dd></div><div><dt>Tanggal Pelunasan</dt><dd>{toDisplayDate(sourceBon.paymentDate)}</dd></div><div><dt>Deskripsi</dt><dd>{sourceBon.description || "-"}</dd></div><div><dt>Jenis</dt><dd>{sourceBon.isBonus ? "Bonus Bon" : "Penjualan Normal"}</dd></div><div><dt>Ongkir</dt><dd>{formatCurrency(sourceBon.shipping)}</dd></div></dl></section>
         </div>
 
-        <aside className="acceptance-card bon-acceptance-summary"><h3>Ringkasan</h3><SummaryMoney label="Omzet" value={calculation.omzet} /><SummaryMoney label="Ongkir" value={sourceBon.shipping} /><SummaryMoney label="Laba HL" value={calculation.profit} /><div className="acceptance-total"><span>Total Tagihan</span><strong>{formatCurrency(calculation.amountOwed)}</strong></div><div className="bon-detail-action-stack"><button className="button button--secondary button--full" type="button"><Download size={19} />Unduh PDF</button>{status === "Piutang" && <><button className="button button--primary button--full" type="button" onClick={() => onSettlement(sourceBon.number)}><HandCoins size={19} />Lunasi Bon</button><button className="button button--secondary button--full" type="button" onClick={() => setAction("edit")}><Pencil size={19} />Edit Bon</button><button className="button button--danger button--full" type="button" onClick={() => setAction("delete")}><Trash2 size={19} />Nonaktifkan Bon</button></>}{status === "Lunas" && <button className="button button--danger button--full" type="button" onClick={() => setAction("void")}><ShieldAlert size={19} />Void Bon</button>}</div></aside>
+        <aside className="acceptance-card bon-acceptance-summary"><h3>Ringkasan</h3><SummaryMoney label="Omzet" value={calculation.omzet} /><SummaryMoney label="Ongkir" value={sourceBon.shipping} /><SummaryMoney label="Laba HL" value={calculation.profit} /><div className="acceptance-total"><span>Total Tagihan</span><strong>{formatCurrency(calculation.amountOwed)}</strong></div><div className="bon-detail-action-stack"><button className="button button--secondary button--full" type="button"><Download size={19} />Unduh PDF</button>{status === "Piutang" && <><button className="button button--primary button--full" type="button" onClick={() => onSettlement(sourceBon.number)}><HandCoins size={19} />Lunasi Bon</button><button className="button button--secondary button--full" type="button" onClick={() => setEditOpen(true)}><Pencil size={19} />Edit Bon</button><button className="button button--danger button--full" type="button" onClick={() => setAction("delete")}><Trash2 size={19} />Nonaktifkan Bon</button></>}{status === "Lunas" && <button className="button button--danger button--full" type="button" onClick={() => setAction("void")}><ShieldAlert size={19} />Void Bon</button>}</div></aside>
       </div>
 
-      {action === "edit" && <EditBonNotice onClose={() => setAction(null)} />}
+      <AcceptanceBonEditDialog bon={editOpen ? sourceBon : null} onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); setNotice("Perubahan Bon Piutang berhasil disimpan dan perhitungan diperbarui."); }} />
       <SensitiveBonDialog action={action} bonNumber={sourceBon.number} ownerPin={ownerPin} setOwnerPin={setOwnerPin} reason={reason} setReason={setReason} onClose={() => setAction(null)} onConfirm={confirmSensitiveAction} />
     </section>
   );
@@ -173,15 +175,11 @@ function CancelPaymentDialog({ bon, ownerPin, setOwnerPin, reason, setReason, on
   return <div className="dialog-backdrop acceptance-dialog-backdrop" role="presentation" onMouseDown={onClose}><section className="acceptance-master-dialog acceptance-master-dialog--small" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">Tindakan sensitif</span><h2>Batalkan Pembayaran</h2><p>{bon.number} akan kembali menjadi Piutang dan total cash basis akan disesuaikan.</p></div><button className="icon-button" type="button" onClick={onClose}><X size={22} /></button></header><div className="acceptance-master-body"><label className="field"><span>PIN Owner *</span><input type="password" inputMode="numeric" value={ownerPin} onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="field"><span>Alasan pembatalan *</span><textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} /></label></div><footer><button className="button button--secondary" type="button" onClick={onClose}>Batal</button><button className="button button--danger" type="button" disabled={!valid} onClick={onConfirm}>Batalkan Pembayaran</button></footer></section></div>;
 }
 
-function SensitiveBonDialog({ action, bonNumber, ownerPin, setOwnerPin, reason, setReason, onClose, onConfirm }: { action: "delete" | "void" | "edit" | null; bonNumber: string; ownerPin: string; setOwnerPin: (value: string) => void; reason: string; setReason: (value: string) => void; onClose: () => void; onConfirm: () => void }) {
-  if (action !== "delete" && action !== "void") return null;
+function SensitiveBonDialog({ action, bonNumber, ownerPin, setOwnerPin, reason, setReason, onClose, onConfirm }: { action: "delete" | "void" | null; bonNumber: string; ownerPin: string; setOwnerPin: (value: string) => void; reason: string; setReason: (value: string) => void; onClose: () => void; onConfirm: () => void }) {
+  if (!action) return null;
   const voidAction = action === "void";
   const valid = !voidAction || (ownerPin.length >= 4 && reason.trim().length >= 8);
   return <div className="dialog-backdrop acceptance-dialog-backdrop" role="presentation" onMouseDown={onClose}><section className="acceptance-master-dialog acceptance-master-dialog--small" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">{voidAction ? "Otorisasi Owner" : "Soft-delete"}</span><h2>{voidAction ? "Void Bon Lunas" : "Nonaktifkan Bon Piutang"}</h2><p>{bonNumber} tetap tersimpan dalam riwayat dan laporan audit.</p></div><button className="icon-button" type="button" onClick={onClose}><X size={22} /></button></header><div className="acceptance-master-body">{voidAction ? <><label className="field"><span>PIN Owner *</span><input type="password" inputMode="numeric" value={ownerPin} onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="field"><span>Alasan Void *</span><textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} /></label></> : <div className="acceptance-warning"><AlertTriangle size={20} /><span>Bon tidak akan muncul dalam transaksi aktif, tetapi riwayatnya tidak dihapus.</span></div>}</div><footer><button className="button button--secondary" type="button" onClick={onClose}>Batal</button><button className="button button--danger" type="button" disabled={!valid} onClick={onConfirm}>{voidAction ? "Void Bon" : "Nonaktifkan Bon"}</button></footer></section></div>;
-}
-
-function EditBonNotice({ onClose }: { onClose: () => void }) {
-  return <div className="dialog-backdrop acceptance-dialog-backdrop" role="presentation" onMouseDown={onClose}><section className="acceptance-confirm-dialog" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><Pencil size={36} /><h2>Edit Bon Piutang</h2><p>UI edit menggunakan struktur Form Bon yang sama. Nilai omzet, laba, dan total akan dihitung ulang saat disimpan.</p><div><button className="button button--primary" type="button" onClick={onClose}>Mengerti</button></div></section></div>;
 }
 
 function AcceptanceStatusBadge({ status }: { status: AcceptanceBonStatus }) {
