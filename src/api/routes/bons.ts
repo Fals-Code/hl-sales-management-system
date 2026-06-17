@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { ApiContext, AuthenticatedRequest } from "../types";
-import { itemKindSchema, moneySchema, paginationSchema, productTypeSchema, quantitySchema } from "../schemas/common";
+import { booleanQuerySchema, itemKindSchema, moneySchema, paginationSchema, productTypeSchema, quantitySchema } from "../schemas/common";
 import { paginationMeta, send } from "./helpers";
 
 const bonItemSchema = z.object({ productId: z.string().min(1), quantity: quantitySchema, kind: itemKindSchema }).strict();
@@ -16,22 +16,30 @@ const saveBonSchema = z
     negativeProfitReason: z.string().optional()
   })
   .strict();
-const voidSchema = z.object({ ownerPin: z.string().min(1), reason: z.string().min(1) }).strict();
+const voidSchema = z.object({ ownerPin: z.string().min(1), reason: z.string().trim().min(1) }).strict();
+const bonListSchema = paginationSchema
+  .extend({
+    customerId: z.string().optional(),
+    status: z.enum(["PIUTANG", "LUNAS", "VOID"]).optional(),
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    year: z.coerce.number().int().min(2000).max(3000).optional(),
+    productType: productTypeSchema.optional(),
+    hasNegativeProfit: booleanQuerySchema.optional(),
+    dateFrom: z.string().datetime().optional(),
+    dateTo: z.string().datetime().optional()
+  })
+  .superRefine((value, ctx) => {
+    if ((value.month === undefined) !== (value.year === undefined)) {
+      ctx.addIssue({ code: "custom", path: [value.month === undefined ? "month" : "year"], message: "month and year must be provided together" });
+    }
+    if (value.dateFrom && value.dateTo && new Date(value.dateFrom) >= new Date(value.dateTo)) {
+      ctx.addIssue({ code: "custom", path: ["dateTo"], message: "dateTo must be later than dateFrom" });
+    }
+  });
 
 export async function registerBonRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/bons", async (request, reply) => {
-    const query = paginationSchema
-      .extend({
-        customerId: z.string().optional(),
-        status: z.enum(["PIUTANG", "LUNAS", "VOID"]).optional(),
-        month: z.coerce.number().int().min(1).max(12).optional(),
-        year: z.coerce.number().int().min(2000).max(3000).optional(),
-        productType: productTypeSchema.optional(),
-        hasNegativeProfit: z.coerce.boolean().optional(),
-        dateFrom: z.string().datetime().optional(),
-        dateTo: z.string().datetime().optional()
-      })
-      .parse(request.query);
+    const query = bonListSchema.parse(request.query);
     const where = bonWhere(query);
     const [total, rows] = await Promise.all([
       ctx.db.bon.count({ where }),
@@ -48,7 +56,7 @@ export async function registerBonRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.post("/api/v1/bons/preview", async (request, reply) => send(reply, await ctx.transactions.previewBon(toSaveBonInput(saveBonSchema.parse(request.body), (request as AuthenticatedRequest).userId))));
 
   app.get("/api/v1/bons/validate-number", async (request, reply) => {
-    const query = z.object({ bonNumber: z.string().min(1) }).strict().parse(request.query);
+    const query = z.object({ bonNumber: z.string().trim().min(1) }).strict().parse(request.query);
     const existing = await ctx.db.bon.findUnique({ where: { bonNumber: query.bonNumber } });
     return send(reply, { available: !existing });
   });
@@ -86,7 +94,11 @@ function bonWhere(query: {
   dateFrom?: string;
   dateTo?: string;
 }): Prisma.BonWhereInput {
-  const bonDate = query.dateFrom || query.dateTo ? { ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}), ...(query.dateTo ? { lt: new Date(query.dateTo) } : {}) } : query.month && query.year ? { gte: new Date(Date.UTC(query.year, query.month - 1, 1)), lt: new Date(Date.UTC(query.year, query.month, 1)) } : undefined;
+  const bonDate = query.dateFrom || query.dateTo
+    ? { ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}), ...(query.dateTo ? { lt: new Date(query.dateTo) } : {}) }
+    : query.month && query.year
+      ? { gte: new Date(Date.UTC(query.year, query.month - 1, 1)), lt: new Date(Date.UTC(query.year, query.month, 1)) }
+      : undefined;
   return {
     deletedAt: null,
     ...(query.customerId ? { customerId: query.customerId } : {}),
