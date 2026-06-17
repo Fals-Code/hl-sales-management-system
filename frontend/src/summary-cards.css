@@ -1,0 +1,112 @@
+.summary-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(38px, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 0;
+  min-height: 188px;
+  padding: 22px 22px 20px 24px;
+}
+
+.summary-card > div:nth-child(2) {
+  display: contents;
+}
+
+.summary-card-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 48px;
+  height: 48px;
+}
+
+.summary-card > div:nth-child(2) > span {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: 0;
+  color: #43556a;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.summary-card-arrow {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+}
+
+.summary-card > div:nth-child(2) > strong {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block;
+  margin: 20px 0 0;
+  color: #101820;
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.summary-card > div:nth-child(2) > small {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: end;
+  display: block;
+  margin: 0;
+  padding-top: 13px;
+  color: #596879;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1599px) and (min-width: 1400px) {
+  .summary-card {
+    min-height: 178px;
+    padding: 20px;
+  }
+
+  .summary-card > div:nth-child(2) > strong {
+    font-size: clamp(1.35rem, 1.75vw, 1.7rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .summary-card {
+    min-height: 160px;
+  }
+
+  .summary-card > div:nth-child(2) > strong {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .summary-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+    min-height: 154px;
+    padding: 16px;
+  }
+
+  .summary-card-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .summary-card-arrow {
+    display: none;
+  }
+
+  .summary-card > div:nth-child(2) > strong,
+  .summary-card > div:nth-child(2) > small {
+    grid-column: 1 / -1;
+  }
+
+  .summary-card > div:nth-child(2) > strong {
+    font-size: 1.35rem;
+  }
+}
