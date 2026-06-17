@@ -137,7 +137,7 @@ export default function App() {
             </button>
             <button className="button button--primary topbar-create-button" onClick={() => setBonDialogOpen(true)}>
               <Plus size={20} />
-              Buat Bon
+              <span>Buat Bon</span>
             </button>
             <button className="icon-button notification-button" aria-label="Notifikasi">
               <Bell size={23} />
