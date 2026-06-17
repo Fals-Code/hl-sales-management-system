@@ -3,7 +3,6 @@ import {
   Accessibility,
   Bell,
   Gift,
-  HandCoins,
   Home,
   LogOut,
   Menu,
@@ -26,6 +25,7 @@ import {
   ReceivablesPage,
   ReportsPage
 } from "./pages";
+import { BonDetailPage, SettlementPage } from "./workflow-pages";
 
 const pageDescriptions: Record<PageKey, string> = {
   dashboard: "Ringkasan kondisi toko dan tindakan penting hari ini",
@@ -46,8 +46,17 @@ export default function App() {
   const [bonDialogOpen, setBonDialogOpen] = useState(false);
   const [comfortableMode, setComfortableMode] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedBonNumber, setSelectedBonNumber] = useState<string | null>(null);
+  const [settlementPrefill, setSettlementPrefill] = useState<string | null>(null);
 
-  const pageTitle = navigation.find((item) => item.key === activePage)?.label ?? "Pengaturan";
+  const selectedBon = bons.find((bon) => bon.number === selectedBonNumber) ?? null;
+  const pageTitle = selectedBon
+    ? "Detail Bon"
+    : navigation.find((item) => item.key === activePage)?.label ?? "Pengaturan";
+  const pageDescription = selectedBon
+    ? `${selectedBon.number} · ${selectedBon.customer}`
+    : pageDescriptions[activePage];
+
   const filteredBons = useMemo(
     () => bons.filter((bon) => `${bon.number} ${bon.customer}`.toLowerCase().includes(search.toLowerCase())),
     [search]
@@ -55,7 +64,19 @@ export default function App() {
 
   const changePage = (page: PageKey) => {
     setActivePage(page);
+    setSelectedBonNumber(null);
     setMobileMenuOpen(false);
+  };
+
+  const openBonDetail = (bonNumber: string) => {
+    setSelectedBonNumber(bonNumber);
+    setMobileMenuOpen(false);
+  };
+
+  const openSettlementForBon = (bonNumber: string) => {
+    setSettlementPrefill(bonNumber);
+    setSelectedBonNumber(null);
+    setActivePage("settlements");
   };
 
   if (!signedIn) return <LoginPage onLogin={() => setSignedIn(true)} />;
@@ -80,7 +101,7 @@ export default function App() {
         <nav className="sidebar-nav">
           {navigation.map((item) => {
             const Icon = item.icon;
-            const active = activePage === item.key;
+            const active = activePage === item.key && !selectedBon;
             return (
               <button
                 key={item.key}
@@ -109,7 +130,7 @@ export default function App() {
         </button>
 
         <div className="sidebar-footer">
-          <button className={`nav-item ${activePage === "settings" ? "nav-item--active" : ""}`} onClick={() => changePage("settings")}>
+          <button className={`nav-item ${activePage === "settings" && !selectedBon ? "nav-item--active" : ""}`} onClick={() => changePage("settings")}>
             <Settings size={22} />
             <span>Pengaturan</span>
           </button>
@@ -130,7 +151,7 @@ export default function App() {
           <div className="topbar-title">
             <span className="eyebrow">HL Sales Management</span>
             <h1>{pageTitle}</h1>
-            <p className="topbar-context">{pageDescriptions[activePage]}</p>
+            <p className="topbar-context">{pageDescription}</p>
           </div>
           <div className="topbar-actions">
             <button
@@ -161,40 +182,63 @@ export default function App() {
         </header>
 
         <main className="page-content" id="main-content" tabIndex={-1}>
-          {activePage === "dashboard" && (
-            <DashboardPage
-              search={search}
-              setSearch={setSearch}
-              rows={filteredBons}
-              onCreateBon={() => setBonDialogOpen(true)}
-              onNavigate={changePage}
+          {selectedBon ? (
+            <BonDetailPage
+              bon={selectedBon}
+              onBack={() => setSelectedBonNumber(null)}
+              onRecordSettlement={openSettlementForBon}
             />
-          )}
-          {activePage === "customers" && <CustomersPage />}
-          {activePage === "products" && <ProductsPage />}
-          {activePage === "bons" && <BonsPage rows={filteredBons} search={search} setSearch={setSearch} onCreate={() => setBonDialogOpen(true)} />}
-          {activePage === "receivables" && <ReceivablesPage />}
-          {activePage === "settlements" && (
-            <PlaceholderPage icon={HandCoins} title="Pelunasan" description="Catat pelunasan satu atau beberapa bon dengan alur yang sederhana dan jelas." action="Catat Pelunasan" />
-          )}
-          {activePage === "bonus" && (
-            <PlaceholderPage icon={Gift} title="Bonus Pelanggan" description="Lihat unit bonus tersedia, riwayat penggunaan, dan biaya promosi." action="Lihat Pelanggan Berbonus" />
-          )}
-          {activePage === "reports" && <ReportsPage />}
-          {activePage === "settings" && (
-            <PlaceholderPage icon={Settings} title="Pengaturan" description="Atur preferensi tampilan, keamanan sesi, dan informasi toko." action="Simpan Pengaturan" />
+          ) : (
+            <>
+              {activePage === "dashboard" && (
+                <DashboardPage
+                  search={search}
+                  setSearch={setSearch}
+                  rows={filteredBons}
+                  onCreateBon={() => setBonDialogOpen(true)}
+                  onNavigate={changePage}
+                  onViewBon={openBonDetail}
+                />
+              )}
+              {activePage === "customers" && <CustomersPage />}
+              {activePage === "products" && <ProductsPage />}
+              {activePage === "bons" && (
+                <BonsPage
+                  rows={filteredBons}
+                  search={search}
+                  setSearch={setSearch}
+                  onCreate={() => setBonDialogOpen(true)}
+                  onViewBon={openBonDetail}
+                />
+              )}
+              {activePage === "receivables" && <ReceivablesPage onViewBon={openBonDetail} />}
+              {activePage === "settlements" && (
+                <SettlementPage
+                  initialBonNumber={settlementPrefill}
+                  onClearInitialBon={() => setSettlementPrefill(null)}
+                  onViewBon={openBonDetail}
+                />
+              )}
+              {activePage === "bonus" && (
+                <PlaceholderPage icon={Gift} title="Bonus Pelanggan" description="Lihat unit bonus tersedia, riwayat penggunaan, dan biaya promosi." action="Lihat Pelanggan Berbonus" />
+              )}
+              {activePage === "reports" && <ReportsPage />}
+              {activePage === "settings" && (
+                <PlaceholderPage icon={Settings} title="Pengaturan" description="Atur preferensi tampilan, keamanan sesi, dan informasi toko." action="Simpan Pengaturan" />
+              )}
+            </>
           )}
         </main>
       </div>
 
       <nav className="mobile-bottom-nav" aria-label="Navigasi mobile">
-        <MobileNavButton active={activePage === "dashboard"} icon={Home} label="Beranda" onClick={() => changePage("dashboard")} />
-        <MobileNavButton active={activePage === "customers"} icon={Users} label="Pelanggan" onClick={() => changePage("customers")} />
+        <MobileNavButton active={activePage === "dashboard" && !selectedBon} icon={Home} label="Beranda" onClick={() => changePage("dashboard")} />
+        <MobileNavButton active={activePage === "customers" && !selectedBon} icon={Users} label="Pelanggan" onClick={() => changePage("customers")} />
         <button className="mobile-create-button" onClick={() => setBonDialogOpen(true)} aria-label="Buat bon baru">
           <Plus size={28} />
           <span>Buat Bon</span>
         </button>
-        <MobileNavButton active={activePage === "receivables"} icon={WalletCards} label="Piutang" onClick={() => changePage("receivables")} />
+        <MobileNavButton active={activePage === "receivables" && !selectedBon} icon={WalletCards} label="Piutang" onClick={() => changePage("receivables")} />
         <MobileNavButton active={mobileMenuOpen} icon={Menu} label="Lainnya" onClick={() => setMobileMenuOpen(true)} />
       </nav>
 
