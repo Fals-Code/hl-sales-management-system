@@ -6,6 +6,7 @@ import "./login.css";
 import "./polish.css";
 import "./responsive.css";
 import "./summary-cards.css";
+import "./clean-layout.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
