@@ -8,7 +8,7 @@ import { paginationMeta, send } from "./helpers";
 const createProductSchema = z.object({ sku: z.string().trim().optional(), name: z.string().trim().min(1), type: productTypeSchema, costPrice: moneySchema, basePrice: moneySchema }).strict();
 const updateProductSchema = createProductSchema.partial().strict();
 
-export async function registerProductRoutes(app: FastifyInstance, ctx: ApiContext) {
+export function registerProductRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/products", async (request, reply) => {
     const query = paginationSchema.extend({ type: productTypeSchema.optional(), active: booleanQuerySchema.optional() }).parse(request.query);
     const where: Prisma.ProductWhereInput = {
