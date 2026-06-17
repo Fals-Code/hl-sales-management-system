@@ -10,6 +10,7 @@ import "./clean-layout.css";
 import "./workflow-pages.css";
 import "./bon-form.css";
 import "./final-template.css";
+import "./acceptance-ui.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
