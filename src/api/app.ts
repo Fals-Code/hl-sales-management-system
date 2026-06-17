@@ -4,8 +4,9 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
-import Fastify from "fastify";
 import type { PrismaClient } from "@prisma/client";
+import Fastify from "fastify";
+import { randomUUID } from "node:crypto";
 import { AuthService } from "../services/authService";
 import { BonusService } from "../services/bonusService";
 import { CustomerService } from "../services/customerService";
@@ -27,7 +28,7 @@ import { registerReportRoutes } from "./routes/reports";
 import { registerSettlementRoutes } from "./routes/settlements";
 import type { ApiContext } from "./types";
 
-export async function buildApp(options: { db?: PrismaClient } = {}) {
+export async function buildApp(options: { db?: PrismaClient; logger?: boolean } = {}) {
   const db = options.db ?? prisma;
   const auth = new AuthService(db);
   const ctx: ApiContext = {
@@ -51,10 +52,13 @@ export async function buildApp(options: { db?: PrismaClient } = {}) {
   };
 
   const app = Fastify({
-    logger: {
-      redact: ["req.headers.cookie", "req.body.password", "req.body.ownerPin", "res.headers.set-cookie"]
-    },
-    genReqId: (request) => String(request.headers["x-request-id"] ?? crypto.randomUUID())
+    logger:
+      options.logger === false
+        ? false
+        : {
+            redact: ["req.headers.cookie", "req.body.password", "req.body.ownerPin", "res.headers.set-cookie"]
+          },
+    genReqId: (request) => String(request.headers["x-request-id"] ?? randomUUID())
   });
 
   app.setErrorHandler(errorHandler);
@@ -70,9 +74,12 @@ export async function buildApp(options: { db?: PrismaClient } = {}) {
   });
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
+  app.addHook("onSend", async (request, reply, payload) => {
+    reply.header("X-Request-Id", request.id);
+    return payload;
+  });
   app.addHook("preHandler", authHook(ctx));
   app.get("/health", async () => ({ success: true, data: { status: "ok" }, meta: {} }));
-  app.get("/docs/json", async (_request, reply) => reply.send(app.swagger()));
 
   await registerAuthRoutes(app, ctx);
   await registerCustomerRoutes(app, ctx);
