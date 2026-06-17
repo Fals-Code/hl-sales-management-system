@@ -1,29 +1,33 @@
 import type { FastifyInstance } from "fastify";
 import PDFDocument from "pdfkit";
+import { toSafeMoneyNumber } from "../../domain/money";
 import type { ApiContext } from "../types";
 import { reportFilterSchema } from "../schemas/common";
 import { toReportFilters } from "./reports";
 
 export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/pdf/transactions", async (request, reply) => {
-    const data = await ctx.reports.overall(toReportFilters(reportFilterSchema.parse(request.query)));
+    const filters = toReportFilters(reportFilterSchema.parse(request.query));
+    const data = { summary: await ctx.reports.overall(filters), rows: await ctx.reports.transactionRows(filters) };
     return sendPdf(reply, "Rekap Transaksi", data);
   });
   app.get("/api/v1/pdf/receivables", async (request, reply) => {
-    const data = await ctx.reports.overall(toReportFilters(reportFilterSchema.parse(request.query)));
+    const filters = toReportFilters(reportFilterSchema.parse(request.query));
+    const data = { summary: await ctx.reports.overall(filters), rows: await ctx.reports.receivableRows(filters) };
     return sendPdf(reply, "Rekap Piutang", data);
   });
   app.get("/api/v1/pdf/customers/:id", async (request, reply) => {
-    const params = { id: String((request.params as { id: string }).id) };
-    const data = await ctx.reports.byCustomer(params.id, toReportFilters(reportFilterSchema.parse(request.query)));
+    const id = String((request.params as { id: string }).id);
+    const filters = { ...toReportFilters(reportFilterSchema.parse(request.query)), customerId: id };
+    const data = { summary: await ctx.reports.byCustomer(id, filters), rows: await ctx.reports.transactionRows(filters) };
     return sendPdf(reply, "Rekap Pelanggan", data);
   });
   app.get("/api/v1/pdf/overall", async (request, reply) => {
     const data = await ctx.reports.overall(toReportFilters(reportFilterSchema.parse(request.query)));
     return sendPdf(reply, "Rekap Keseluruhan", data);
   });
-  app.get("/api/v1/pdf/bonus-log", async (_request, reply) => {
-    const data = await ctx.db.bonusLedger.findMany({ orderBy: { createdAt: "asc" } });
+  app.get("/api/v1/pdf/bonus-log", async (request, reply) => {
+    const data = await ctx.reports.bonusLogRows(toReportFilters(reportFilterSchema.parse(request.query)));
     return sendPdf(reply, "Log Bonus", data);
   });
 }
@@ -46,13 +50,13 @@ function renderPdf(title: string, data: unknown) {
     doc.moveDown(0.5);
     doc.fontSize(10).text(`Dibuat: ${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`);
     doc.moveDown();
-    doc.fontSize(9).text(JSON.stringify(data, jsonReplacer, 2), { lineGap: 2 });
+    doc.fontSize(8).text(JSON.stringify(data, jsonReplacer, 2), { lineGap: 2 });
     doc.end();
   });
 }
 
 function jsonReplacer(_key: string, value: unknown) {
-  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "bigint") return toSafeMoneyNumber(value, "pdfMoney");
   if (value instanceof Date) return value.toISOString();
   return value;
 }
