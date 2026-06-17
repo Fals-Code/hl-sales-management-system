@@ -19,7 +19,7 @@ export async function createTestContext(name: string) {
   if (!databaseUrl) {
     throw new Error(`TEST_DATABASE_URL is required for PostgreSQL integration tests (${name}).`);
   }
-  execFileSync("cmd.exe", ["/c", "npm.cmd", "run", "db:migrate:deploy"], {
+  execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "db:migrate:deploy"], {
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: "pipe"
   });
