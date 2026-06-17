@@ -4,7 +4,7 @@ import type { ApiContext } from "../types";
 import { reportFilterSchema } from "../schemas/common";
 import { send } from "./helpers";
 
-export async function registerReportRoutes(app: FastifyInstance, ctx: ApiContext) {
+export function registerReportRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/reports/customers", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
     const customers = await ctx.db.customer.findMany({ where: { deletedAt: null }, orderBy: { name: "asc" } });
