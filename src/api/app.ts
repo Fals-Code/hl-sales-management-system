@@ -112,12 +112,25 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
       security: isLogin ? [] : [{ cookieAuth: [] }]
     };
   });
-  app.addHook("onSend", async (request, reply, payload) => {
+  app.addHook("onSend", (request, reply, payload) => {
     reply.header("X-Request-Id", request.id);
     return payload;
   });
   app.addHook("preHandler", authHook(ctx));
-  app.get("/health", async () => ({ success: true, data: { status: "ok" }, meta: {} }));
+
+  app.get("/", () => ({
+    success: true,
+    data: {
+      service: "HL Sales Management API",
+      status: "running",
+      health: "/health",
+      documentation: "/docs",
+      openapi: "/docs/json"
+    },
+    meta: {}
+  }));
+  app.get("/health", () => ({ success: true, data: { status: "ok" }, meta: {} }));
+  app.get("/favicon.ico", (_request, reply) => reply.status(204).send());
 
   await registerAuthRoutes(app, ctx);
   await registerCustomerRoutes(app, ctx);
