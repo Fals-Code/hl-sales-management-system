@@ -19,7 +19,7 @@ const createCustomerSchema = z
 const updateCustomerSchema = createCustomerSchema.partial().strict();
 const thresholdSchema = z.object({ bonusThreshold: moneySchema, reason: z.string().trim().optional() }).strict();
 
-export async function registerCustomerRoutes(app: FastifyInstance, ctx: ApiContext) {
+export function registerCustomerRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/customers", async (request, reply) => {
     const query = paginationSchema
       .extend({ active: booleanQuerySchema.optional(), hasBonus: booleanQuerySchema.optional() })
