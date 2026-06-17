@@ -39,7 +39,7 @@ export function AcceptanceProductsPage() {
     <section className="acceptance-page">
       <header className="acceptance-page-header">
         <span className="acceptance-page-icon"><ShoppingBag size={30} /></span>
-        <div><span className="eyebrow">Data master</span><h2>Produk</h2><p>Harga modal hanya digunakan untuk laba. Harga Base menjadi dasar diskon pelanggan.</p></div>
+        <div><span className="eyebrow">Data master</span><h2>Produk</h2><p>Harga Modal hanya digunakan untuk laba. Harga Base menjadi dasar diskon pelanggan.</p></div>
         <button className="button button--primary" type="button" onClick={() => setEditor({ mode: "create" })}><PackagePlus size={20} />Tambah Produk</button>
       </header>
 
@@ -62,17 +62,16 @@ export function AcceptanceProductsPage() {
         </div>
       )}
 
-      <ProductEditor open={editor !== null} mode={editor?.mode ?? "create"} product={editor?.product} onClose={() => setEditor(null)} onSave={saveProduct} />
+      {editor && <ProductEditor key={`${editor.mode}-${editor.product?.id ?? "new"}`} mode={editor.mode} product={editor.product} onClose={() => setEditor(null)} onSave={saveProduct} />}
       <DeleteProductDialog product={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={softDelete} />
     </section>
   );
 }
 
-function ProductEditor({ open, mode, product, onClose, onSave }: { open: boolean; mode: "create" | "edit"; product?: ProductProfile; onClose: () => void; onSave: (product: ProductProfile) => void }) {
+function ProductEditor({ mode, product, onClose, onSave }: { mode: "create" | "edit"; product?: ProductProfile; onClose: () => void; onSave: (product: ProductProfile) => void }) {
   const initial = product ?? { id: `PRD-${String(productProfiles.length + 1).padStart(3, "0")}`, name: "", type: "LM" as const, stock: 0, costPrice: 0, basePrice: 0, active: true };
   const [draft, setDraft] = useState<ProductProfile>(initial);
   const [saved, setSaved] = useState(false);
-  if (!open) return null;
   const canSave = draft.name.trim().length > 0 && draft.costPrice >= 0 && draft.basePrice >= 0 && draft.stock >= 0;
 
   const save = () => {
