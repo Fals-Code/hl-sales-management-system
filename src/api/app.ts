@@ -112,9 +112,9 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
       security: isLogin ? [] : [{ cookieAuth: [] }]
     };
   });
-  app.addHook("onSend", (request, reply, payload) => {
+  app.addHook("onSend", (request, reply, payload, done) => {
     reply.header("X-Request-Id", request.id);
-    return payload;
+    done(null, payload);
   });
   app.addHook("preHandler", authHook(ctx));
 
@@ -132,14 +132,14 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
   app.get("/health", () => ({ success: true, data: { status: "ok" }, meta: {} }));
   app.get("/favicon.ico", (_request, reply) => reply.status(204).send());
 
-  await registerAuthRoutes(app, ctx);
-  await registerCustomerRoutes(app, ctx);
-  await registerProductRoutes(app, ctx);
-  await registerBonRoutes(app, ctx);
-  await registerSettlementRoutes(app, ctx);
-  await registerBonusRoutes(app, ctx);
-  await registerReportRoutes(app, ctx);
-  await registerPdfRoutes(app, ctx);
+  registerAuthRoutes(app, ctx);
+  registerCustomerRoutes(app, ctx);
+  registerProductRoutes(app, ctx);
+  registerBonRoutes(app, ctx);
+  registerSettlementRoutes(app, ctx);
+  registerBonusRoutes(app, ctx);
+  registerReportRoutes(app, ctx);
+  registerPdfRoutes(app, ctx);
 
   return app;
 }
