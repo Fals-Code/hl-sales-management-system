@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import {
@@ -19,10 +20,13 @@ export async function createTestContext(name: string) {
   if (!databaseUrl) {
     throw new Error(`TEST_DATABASE_URL is required for PostgreSQL integration tests (${name}).`);
   }
-  execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "db:migrate:deploy"], {
+
+  const prismaCli = resolve(process.cwd(), "node_modules", "prisma", "build", "index.js");
+  execFileSync(process.execPath, [prismaCli, "migrate", "deploy"], {
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: "pipe"
   });
+
   const db = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
   const auth = new AuthService(db);
   const customers = new CustomerService(db);
