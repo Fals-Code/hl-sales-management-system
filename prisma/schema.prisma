@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  passwordHash   String
+  ownerPinHash   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  sessions       Session[]
+  authorizations AuthorizationRecord[]
+  bonusThresholdHistories BonusThresholdHistory[] @relation("BonusThresholdChangedBy")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Customer {
+  id             String   @id @default(cuid())
+  code           String?  @unique
+  name           String
+  phone          String?
+  address        String?
+  bonusThreshold BigInt   @default(0)
+  bonusCarryoverRevenue BigInt @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+  discountTiers  CustomerDiscountTier[]
+  thresholdHistories BonusThresholdHistory[]
+  bons           Bon[]
+  bonusLedgers   BonusLedger[]
+
+  @@index([name])
+  @@index([deletedAt])
+}
+
+model CustomerDiscountTier {
+  id          String      @id @default(cuid())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productType String
+  sequence    Int
+  percentBps  Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([customerId, productType, sequence])
+  @@index([customerId, productType])
+}
+
+model BonusThresholdHistory {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  oldValue    BigInt
+  newValue    BigInt
+  effectiveFrom DateTime @default(now())
+  effectiveUntil DateTime?
+  carryoverRevenue BigInt @default(0)
+  reason      String?
+  changedById String?
+  changedBy   User?    @relation("BonusThresholdChangedBy", fields: [changedById], references: [id])
+  changedAt   DateTime @default(now())
+
+  @@index([customerId, changedAt])
+  @@index([customerId, effectiveFrom])
+}
+
+model Product {
+  id        String      @id @default(cuid())
+  sku       String?     @unique
+  name      String
+  type      String
+  costPrice BigInt
+  basePrice BigInt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+  bonItems  BonItem[]
+
+  @@index([name])
+  @@index([type])
+  @@index([deletedAt])
+}
+
+model Bon {
+  id                String    @id @default(cuid())
+  bonNumber         String    @unique
+  customerId        String
+  customer          Customer  @relation(fields: [customerId], references: [id])
+  status            String    @default("PIUTANG")
+  bonDate           DateTime  @default(now())
+  settledAt         DateTime?
+  voidedAt          DateTime?
+  deletedAt         DateTime?
+  shippingCost      BigInt    @default(0)
+  totalBeforeDiscount BigInt  @default(0)
+  totalAfterDiscount  BigInt  @default(0)
+  totalAmount       BigInt    @default(0)
+  revenueLm         BigInt    @default(0)
+  revenueBr         BigInt    @default(0)
+  profitAmount      BigInt    @default(0)
+  bonusCost         BigInt    @default(0)
+  hasNegativeProfit Boolean   @default(false)
+  negativeProfitAuthorizedById String?
+  negativeProfitReason String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  items             BonItem[]
+  paymentLinks      PaymentBon[]
+  voidRecord        VoidRecord?
+  bonusLedgers      BonusLedger[]
+
+  @@index([customerId, status])
+  @@index([bonDate])
+  @@index([settledAt])
+  @@index([deletedAt])
+}
+
+model BonItem {
+  id                   String      @id @default(cuid())
+  bonId                String
+  bon                  Bon         @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  productId            String?
+  product              Product?    @relation(fields: [productId], references: [id])
+  kind                 String
+  productNameSnapshot  String
+  productTypeSnapshot  String
+  costPriceSnapshot    BigInt
+  basePriceSnapshot    BigInt
+  discountSnapshotJson String
+  priceAfterDiscount   BigInt
+  finalPrice           BigInt
+  quantity             Int
+  subtotal             BigInt
+  profitAmount         BigInt
+  isBonus              Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+
+  @@index([bonId])
+  @@index([productTypeSnapshot])
+  @@index([isBonus])
+}
+
+model Payment {
+  id           String    @id @default(cuid())
+  paymentNumber String  @unique
+  customerId   String
+  paidAt       DateTime
+  totalAmount  BigInt
+  historicalPaymentAmount BigInt
+  activePaymentAmount BigInt
+  revenueLm    BigInt   @default(0)
+  revenueBr    BigInt   @default(0)
+  profitAmount BigInt   @default(0)
+  bonusCost    BigInt   @default(0)
+  canceledAt   DateTime?
+  cancelReason String?
+  canceledById String?
+  cancelAuthorizationId String?
+  createdAt    DateTime @default(now())
+  bons         PaymentBon[]
+  bonusLedgers BonusLedger[]
+
+  @@index([customerId, paidAt])
+  @@index([canceledAt])
+}
+
+model PaymentBon {
+  paymentId String
+  bonId     String
+  amount    BigInt
+  allocatedInvoiceAmount BigInt
+  allocatedProductRevenue BigInt
+  allocatedShipping BigInt
+  allocatedProfit BigInt
+  createdAt DateTime @default(now())
+  reversedAt DateTime?
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  bon       Bon     @relation(fields: [bonId], references: [id])
+
+  @@id([paymentId, bonId])
+  @@index([bonId])
+  @@index([reversedAt])
+}
+
+model BonusLedger {
+  id            String            @id @default(cuid())
+  customerId    String
+  customer      Customer          @relation(fields: [customerId], references: [id])
+  mutationType  String
+  amount        Int
+  balanceBefore Int
+  balanceAfter  Int
+  thresholdSnapshot BigInt?
+  revenueSnapshot BigInt?
+  reversalOfId  String? @unique
+  bonId         String?
+  bon           Bon?              @relation(fields: [bonId], references: [id])
+  paymentId     String?
+  payment       Payment?          @relation(fields: [paymentId], references: [id])
+  reason        String?
+  createdAt     DateTime          @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([bonId])
+  @@index([paymentId])
+  @@index([reversalOfId])
+}
+
+model AuthorizationRecord {
+  id        String            @id @default(cuid())
+  type      String
+  userId    String
+  user      User              @relation(fields: [userId], references: [id])
+  reason    String
+  context   String?
+  createdAt DateTime          @default(now())
+
+  @@index([type, createdAt])
+  @@index([userId])
+}
+
+model VoidRecord {
+  id              String   @id @default(cuid())
+  bonId           String   @unique
+  bon             Bon      @relation(fields: [bonId], references: [id])
+  reason          String
+  authorizedById  String
+  authorizationId String
+  previousStatus  String
+  previousTotal   BigInt
+  previousRevenueLm BigInt
+  previousRevenueBr BigInt
+  previousProfit  BigInt
+  previousBonusCost BigInt
+  reversalImpactJson String
+  voidedAt        DateTime @default(now())
+
+  @@index([voidedAt])
+}
