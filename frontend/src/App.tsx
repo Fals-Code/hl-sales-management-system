@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   Accessibility,
   Bell,
-  Gift,
   Home,
   LogOut,
   Menu,
@@ -15,15 +14,18 @@ import {
 import { BonDialog } from "./BonDialog";
 import { MobileNavButton } from "./components";
 import { bons, navigation, type PageKey } from "./data";
+import {
+  FinalBonusPage,
+  FinalCustomersPage,
+  FinalProductsPage,
+  FinalReportsPage,
+  FinalSettingsPage
+} from "./final-pages";
 import { LoginPage } from "./LoginPage";
 import {
   BonsPage,
-  CustomersPage,
   DashboardPage,
-  PlaceholderPage,
-  ProductsPage,
-  ReceivablesPage,
-  ReportsPage
+  ReceivablesPage
 } from "./pages";
 import { BonDetailPage, SettlementPage } from "./workflow-pages";
 
@@ -32,7 +34,7 @@ const pageDescriptions: Record<PageKey, string> = {
   customers: "Kelola identitas, diskon, piutang, dan bonus pelanggan",
   products: "Kelola produk LM dan BR beserta harga dan stok",
   bons: "Lihat seluruh transaksi penjualan dan status pembayarannya",
-  receivables: "Pantau bon yang belum lunas dan prioritas penagihan",
+  receivables: "Pantau Bon yang belum lunas dan prioritas penagihan",
   settlements: "Catat pembayaran pelanggan secara aman dan jelas",
   bonus: "Pantau bonus pelanggan tanpa menambah omzet atau laba",
   reports: "Baca ringkasan usaha dan unduh laporan yang dibutuhkan",
@@ -45,6 +47,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bonDialogOpen, setBonDialogOpen] = useState(false);
   const [comfortableMode, setComfortableMode] = useState(true);
+  const [highContrast, setHighContrast] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedBonNumber, setSelectedBonNumber] = useState<string | null>(null);
   const [settlementPrefill, setSettlementPrefill] = useState<string | null>(null);
@@ -81,8 +85,15 @@ export default function App() {
 
   if (!signedIn) return <LoginPage onLogin={() => setSignedIn(true)} />;
 
+  const shellClasses = [
+    "app-shell",
+    comfortableMode ? "app-shell--comfortable" : "",
+    highContrast ? "app-shell--high-contrast" : "",
+    reducedMotion ? "app-shell--reduced-motion" : ""
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className={`app-shell ${comfortableMode ? "app-shell--comfortable" : ""}`}>
+    <div className={shellClasses}>
       <a className="skip-link" href="#main-content">Langsung ke isi halaman</a>
 
       <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
@@ -200,8 +211,14 @@ export default function App() {
                   onViewBon={openBonDetail}
                 />
               )}
-              {activePage === "customers" && <CustomersPage />}
-              {activePage === "products" && <ProductsPage />}
+              {activePage === "customers" && (
+                <FinalCustomersPage
+                  onCreateBon={() => setBonDialogOpen(true)}
+                  onSettlement={() => changePage("settlements")}
+                  onViewBon={openBonDetail}
+                />
+              )}
+              {activePage === "products" && <FinalProductsPage />}
               {activePage === "bons" && (
                 <BonsPage
                   rows={filteredBons}
@@ -219,12 +236,17 @@ export default function App() {
                   onViewBon={openBonDetail}
                 />
               )}
-              {activePage === "bonus" && (
-                <PlaceholderPage icon={Gift} title="Bonus Pelanggan" description="Lihat unit bonus tersedia, riwayat penggunaan, dan biaya promosi." action="Lihat Pelanggan Berbonus" />
-              )}
-              {activePage === "reports" && <ReportsPage />}
+              {activePage === "bonus" && <FinalBonusPage />}
+              {activePage === "reports" && <FinalReportsPage />}
               {activePage === "settings" && (
-                <PlaceholderPage icon={Settings} title="Pengaturan" description="Atur preferensi tampilan, keamanan sesi, dan informasi toko." action="Simpan Pengaturan" />
+                <FinalSettingsPage
+                  comfortableMode={comfortableMode}
+                  setComfortableMode={setComfortableMode}
+                  highContrast={highContrast}
+                  setHighContrast={setHighContrast}
+                  reducedMotion={reducedMotion}
+                  setReducedMotion={setReducedMotion}
+                />
               )}
             </>
           )}
@@ -234,7 +256,7 @@ export default function App() {
       <nav className="mobile-bottom-nav" aria-label="Navigasi mobile">
         <MobileNavButton active={activePage === "dashboard" && !selectedBon} icon={Home} label="Beranda" onClick={() => changePage("dashboard")} />
         <MobileNavButton active={activePage === "customers" && !selectedBon} icon={Users} label="Pelanggan" onClick={() => changePage("customers")} />
-        <button className="mobile-create-button" onClick={() => setBonDialogOpen(true)} aria-label="Buat bon baru">
+        <button className="mobile-create-button" onClick={() => setBonDialogOpen(true)} aria-label="Buat Bon baru">
           <Plus size={28} />
           <span>Buat Bon</span>
         </button>
