@@ -4,6 +4,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "allowUmdGlobalAccess": true,
     "strict": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
