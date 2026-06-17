@@ -8,6 +8,7 @@ import "./responsive.css";
 import "./summary-cards.css";
 import "./clean-layout.css";
 import "./workflow-pages.css";
+import "./bon-form.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
