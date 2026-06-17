@@ -69,11 +69,49 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
   await app.register(swagger, {
     openapi: {
       info: { title: "HL Backend API", version: "0.2.0" },
-      components: { securitySchemes: { cookieAuth: { type: "apiKey", in: "cookie", name: ctx.cookieName } } }
+      components: {
+        securitySchemes: { cookieAuth: { type: "apiKey", in: "cookie", name: ctx.cookieName } },
+        schemas: {
+          SuccessEnvelope: {
+            type: "object",
+            required: ["success", "data", "meta"],
+            properties: {
+              success: { type: "boolean", enum: [true] },
+              data: {},
+              meta: { type: "object", additionalProperties: true }
+            }
+          },
+          ErrorEnvelope: {
+            type: "object",
+            required: ["success", "error"],
+            properties: {
+              success: { type: "boolean", enum: [false] },
+              error: {
+                type: "object",
+                required: ["code", "message", "fields"],
+                properties: {
+                  code: { type: "string" },
+                  message: { type: "string" },
+                  fields: { type: "object", additionalProperties: true }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   });
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
+  app.addHook("onRoute", (routeOptions) => {
+    if (!routeOptions.url.startsWith("/api/v1")) return;
+    const isLogin = routeOptions.url === "/api/v1/auth/login";
+    routeOptions.schema = {
+      ...routeOptions.schema,
+      tags: routeOptions.schema?.tags ?? [openApiTag(routeOptions.url)],
+      security: isLogin ? [] : [{ cookieAuth: [] }]
+    };
+  });
   app.addHook("onSend", async (request, reply, payload) => {
     reply.header("X-Request-Id", request.id);
     return payload;
@@ -91,4 +129,16 @@ export async function buildApp(options: { db?: PrismaClient; logger?: boolean } 
   await registerPdfRoutes(app, ctx);
 
   return app;
+}
+
+function openApiTag(url: string) {
+  if (url.includes("/auth/")) return "Authentication";
+  if (url.includes("/customers")) return url.includes("bonus") ? "Bonus" : "Customers";
+  if (url.includes("/products")) return "Products";
+  if (url.includes("/bons")) return "Transactions";
+  if (url.includes("/settlements") || url.includes("/payments")) return "Settlements";
+  if (url.includes("/bonus")) return "Bonus";
+  if (url.includes("/reports")) return "Reporting";
+  if (url.includes("/pdf")) return "PDF";
+  return "API";
 }
