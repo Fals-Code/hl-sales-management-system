@@ -62,6 +62,8 @@ export default function App() {
 
   return (
     <div className={`app-shell ${comfortableMode ? "app-shell--comfortable" : ""}`}>
+      <a className="skip-link" href="#main-content">Langsung ke isi halaman</a>
+
       <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
         <div className="brand-block">
           <div className="brand-mark">HL</div>
@@ -93,13 +95,18 @@ export default function App() {
           })}
         </nav>
 
-        <div className="sidebar-help-card">
+        <button
+          className={`sidebar-help-card ${comfortableMode ? "sidebar-help-card--active" : ""}`}
+          type="button"
+          onClick={() => setComfortableMode((value) => !value)}
+          aria-pressed={comfortableMode}
+        >
           <Accessibility size={24} />
-          <div>
-            <strong>Tampilan nyaman aktif</strong>
-            <span>Teks dan tombol dibuat lebih besar.</span>
-          </div>
-        </div>
+          <span>
+            <strong>{comfortableMode ? "Tampilan nyaman aktif" : "Gunakan tampilan nyaman"}</strong>
+            <small>{comfortableMode ? "Teks dan tombol dibuat lebih besar." : "Perbesar teks dan ruang antarelemen."}</small>
+          </span>
+        </button>
 
         <div className="sidebar-footer">
           <button className={`nav-item ${activePage === "settings" ? "nav-item--active" : ""}`} onClick={() => changePage("settings")}>
@@ -143,7 +150,7 @@ export default function App() {
               <Bell size={23} />
               <span className="notification-dot" />
             </button>
-            <div className="user-chip">
+            <div className="user-chip" aria-label="Pengguna aktif Admin HL">
               <div className="user-avatar">AD</div>
               <div>
                 <strong>Admin HL</strong>
@@ -153,7 +160,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="page-content">
+        <main className="page-content" id="main-content" tabIndex={-1}>
           {activePage === "dashboard" && (
             <DashboardPage
               search={search}
