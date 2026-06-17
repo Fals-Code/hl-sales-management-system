@@ -27,6 +27,18 @@ export type SaveBonInput = {
 export class TransactionService {
   constructor(private readonly db: PrismaClient, private readonly auth: AuthService) {}
 
+  async previewBon(input: SaveBonInput) {
+    const calculation = await buildCalculation(this.db, input);
+    const bonusUnits = countBonusUnits(input.items);
+    const bonusAvailability = bonusUnits > 0 ? await new BonusService(this.db).getAvailability(input.customerId) : undefined;
+    return {
+      ...calculation,
+      bonusUnits,
+      bonusAvailability,
+      canUseBonus: !bonusAvailability || bonusUnits <= bonusAvailability.availableUnits
+    };
+  }
+
   async createBon(input: SaveBonInput) {
     return this.db.$transaction(async (tx) => {
       const calculation = await buildCalculation(tx, input);
