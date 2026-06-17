@@ -6,7 +6,7 @@ import { send } from "./helpers";
 const loginSchema = z.object({ username: z.string().min(1), password: z.string().min(1) }).strict();
 const pinSchema = z.object({ ownerPin: z.string().min(1) }).strict();
 
-export async function registerAuthRoutes(app: FastifyInstance, ctx: ApiContext) {
+export function registerAuthRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.post("/api/v1/auth/login", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const body = loginSchema.parse(request.body);
     const session = await ctx.auth.login(body.username, body.password);
