@@ -5,14 +5,14 @@
 }
 
 .brand-mark {
-  width: 54px;
-  height: 54px;
-  flex: 0 0 auto;
-  border-radius: 15px;
-  background: url("/favicon.svg") center / contain no-repeat;
-  color: transparent;
-  font-size: 0;
-  box-shadow: 0 10px 24px rgba(3, 20, 34, 0.28);
+  width: 54px !important;
+  height: 54px !important;
+  flex: 0 0 auto !important;
+  border-radius: 15px !important;
+  background: url("/favicon.svg") center / contain no-repeat !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  box-shadow: 0 10px 24px rgba(3, 20, 34, 0.28) !important;
 }
 
 .login-brand-lockup,
@@ -84,8 +84,8 @@
   }
 
   .brand-mark {
-    width: 50px;
-    height: 50px;
+    width: 50px !important;
+    height: 50px !important;
   }
 }
 
