@@ -1,5 +1,6 @@
 import { Eye, EyeOff, LockKeyhole, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo } from "./BrandLogo";
 
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -7,7 +8,13 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
   return (
     <main className="login-page">
       <section className="login-brand-panel">
-        <div className="login-brand-mark">HL</div>
+        <div className="login-brand-lockup">
+          <BrandLogo size={82} />
+          <div>
+            <strong>HL Sales</strong>
+            <span>Management System</span>
+          </div>
+        </div>
         <span className="eyebrow">HL Sales Management</span>
         <h1>Kelola transaksi toko dengan lebih sederhana.</h1>
         <p>Bon, piutang, pelunasan, bonus, dan laporan tersusun dalam satu sistem yang mudah dibaca.</p>
@@ -19,7 +26,13 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
 
       <section className="login-form-panel">
         <div className="login-card">
-          <div className="login-mobile-brand">HL</div>
+          <div className="login-mobile-lockup">
+            <BrandLogo size={64} />
+            <div>
+              <strong>HL Sales</strong>
+              <span>Manajemen Toko</span>
+            </div>
+          </div>
           <span className="eyebrow">Selamat datang</span>
           <h2>Masuk ke aplikasi</h2>
           <p>Gunakan akun utama yang telah dibuat pada tahap backend.</p>
