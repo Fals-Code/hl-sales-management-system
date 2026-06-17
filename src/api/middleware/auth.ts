@@ -4,6 +4,7 @@ import { unauthorized } from "../errors/httpErrors";
 
 export function authHook(ctx: ApiContext) {
   return async (request: FastifyRequest, _reply: FastifyReply) => {
+    if (request.method === "OPTIONS") return;
     if (!request.url.startsWith("/api/v1")) return;
     if (request.url.startsWith("/api/v1/auth/login")) return;
     const token = request.cookies[ctx.cookieName];
