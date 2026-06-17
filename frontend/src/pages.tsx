@@ -22,13 +22,15 @@ export function DashboardPage({
   setSearch,
   rows,
   onCreateBon,
-  onNavigate
+  onNavigate,
+  onViewBon
 }: {
   search: string;
   setSearch: (value: string) => void;
   rows: BonRow[];
   onCreateBon: () => void;
   onNavigate: (page: PageKey) => void;
+  onViewBon: (bonNumber: string) => void;
 }) {
   return (
     <>
@@ -84,7 +86,7 @@ export function DashboardPage({
             <button className="text-button" onClick={() => onNavigate("bons")}>Lihat Semua <ChevronRight size={18} /></button>
           </div>
           <SearchBox value={search} onChange={setSearch} placeholder="Cari nomor bon atau pelanggan" />
-          <ResponsiveBonList rows={rows.slice(0, 4)} />
+          <ResponsiveBonList rows={rows.slice(0, 4)} onViewDetail={onViewBon} />
         </section>
 
         <aside className="panel attention-panel">
@@ -162,7 +164,19 @@ export function ProductsPage() {
   );
 }
 
-export function BonsPage({ rows, search, setSearch, onCreate }: { rows: BonRow[]; search: string; setSearch: (value: string) => void; onCreate: () => void }) {
+export function BonsPage({
+  rows,
+  search,
+  setSearch,
+  onCreate,
+  onViewBon
+}: {
+  rows: BonRow[];
+  search: string;
+  setSearch: (value: string) => void;
+  onCreate: () => void;
+  onViewBon: (bonNumber: string) => void;
+}) {
   return (
     <section className="panel page-panel">
       <div className="section-heading section-heading--row">
@@ -174,12 +188,12 @@ export function BonsPage({ rows, search, setSearch, onCreate }: { rows: BonRow[]
         <button className="button button--primary" onClick={onCreate}><Plus size={20} />Buat Bon</button>
       </div>
       <SearchBox value={search} onChange={setSearch} placeholder="Cari nomor bon atau pelanggan" />
-      <ResponsiveBonList rows={rows} />
+      <ResponsiveBonList rows={rows} onViewDetail={onViewBon} />
     </section>
   );
 }
 
-export function ReceivablesPage() {
+export function ReceivablesPage({ onViewBon }: { onViewBon: (bonNumber: string) => void }) {
   const receivables = bons.filter((bon) => bon.status === "Belum Lunas");
   return (
     <section className="panel page-panel">
@@ -196,7 +210,7 @@ export function ReceivablesPage() {
         <div><span>Total Piutang Aktif</span><strong>{formatCurrency(12500000)}</strong></div>
         <small>15 bon dari 8 pelanggan</small>
       </div>
-      <ResponsiveBonList rows={receivables} />
+      <ResponsiveBonList rows={receivables} onViewDetail={onViewBon} />
     </section>
   );
 }
