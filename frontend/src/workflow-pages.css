@@ -1,0 +1,735 @@
+.workflow-page {
+  display: grid;
+  gap: 20px;
+}
+
+.workflow-heading,
+.bon-detail-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 26px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(23, 32, 42, 0.04);
+}
+
+.workflow-heading h2,
+.bon-detail-hero h2 {
+  margin-bottom: 6px;
+}
+
+.workflow-heading p,
+.bon-detail-hero p {
+  margin-bottom: 0;
+}
+
+.workflow-heading-icon,
+.workflow-icon-badge {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.workflow-heading-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.workflow-icon-badge {
+  width: 48px;
+  height: 48px;
+}
+
+.workflow-main-column {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 18px;
+}
+
+.settlement-layout,
+.bon-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.75fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.workflow-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 5px 18px rgba(23, 32, 42, 0.035);
+}
+
+.workflow-card-heading,
+.workflow-card-heading-copy {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.workflow-card-heading {
+  margin-bottom: 20px;
+}
+
+.workflow-card-heading--split {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.workflow-card-heading h3 {
+  margin-bottom: 4px;
+}
+
+.workflow-card-heading p {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.step-number {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.select-with-icon {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  min-height: 56px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--primary);
+}
+
+.select-with-icon:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(31, 78, 120, 0.1);
+}
+
+.select-with-icon select {
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.settlement-bon-list {
+  display: grid;
+  gap: 12px;
+}
+
+.settlement-bon-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 15px 16px;
+  background: #fbfcfd;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.settlement-bon-card--selected {
+  border-color: #74a9cc;
+  background: #eef7fc;
+  box-shadow: 0 0 0 3px rgba(31, 78, 120, 0.08);
+}
+
+.settlement-checkbox-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.settlement-checkbox-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.custom-checkbox {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid #97a6b5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.settlement-checkbox-row input:focus-visible + .custom-checkbox {
+  outline: 3px solid rgba(31, 78, 120, 0.24);
+  outline-offset: 2px;
+}
+
+.settlement-checkbox-row input:checked + .custom-checkbox {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.settlement-bon-copy {
+  min-width: 0;
+}
+
+.settlement-bon-copy strong,
+.settlement-bon-copy small {
+  display: block;
+}
+
+.settlement-bon-copy strong {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.settlement-bon-copy small {
+  color: var(--muted);
+}
+
+.settlement-bon-amount {
+  color: var(--text);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.settlement-detail-button {
+  margin: 8px 0 0 40px;
+  font-size: 0.86rem;
+}
+
+.settlement-summary,
+.bon-total-card {
+  position: sticky;
+  top: 124px;
+}
+
+.settlement-summary-customer {
+  display: grid;
+  gap: 4px;
+  border-radius: 13px;
+  padding: 14px;
+  background: #f5f8fb;
+}
+
+.settlement-summary-customer span,
+.settlement-summary-customer small {
+  color: var(--muted);
+}
+
+.settlement-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.settlement-summary-row,
+.bon-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e8edf1;
+}
+
+.settlement-summary-row span,
+.bon-total-row span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.settlement-summary-row strong,
+.bon-total-row strong {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.empty-selection {
+  display: grid;
+  min-height: 110px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed #c8d2dc;
+  border-radius: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.settlement-total {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 18px;
+  border-top: 2px solid var(--primary);
+  padding-top: 17px;
+}
+
+.settlement-total span,
+.settlement-total small {
+  color: var(--muted);
+}
+
+.settlement-total strong {
+  color: var(--primary);
+  font-size: clamp(1.55rem, 2.3vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  background: #d8dee5;
+  color: #748291;
+  opacity: 1;
+}
+
+.success-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #9fd5b4;
+  border-radius: 15px;
+  padding: 15px 17px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.success-banner svg {
+  flex: 0 0 auto;
+}
+
+.success-banner strong,
+.success-banner span {
+  display: block;
+}
+
+.success-banner span {
+  margin-top: 3px;
+  color: #2f6545;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.back-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.bon-detail-hero .status-badge {
+  min-height: 36px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+}
+
+.bon-item-list {
+  display: grid;
+  gap: 0;
+}
+
+.bon-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e8edf1;
+}
+
+.bon-item-row:last-child {
+  border-bottom: 0;
+}
+
+.bon-item-row strong,
+.bon-item-row span,
+.bon-item-price strong,
+.bon-item-price span {
+  display: block;
+}
+
+.bon-item-row span,
+.bon-item-price span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.bon-item-price {
+  text-align: right;
+}
+
+.bon-item-price strong {
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-definition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.detail-definition-grid > div {
+  border: 1px solid #e1e7ec;
+  border-radius: 13px;
+  padding: 14px;
+  background: #fbfcfd;
+}
+
+.detail-definition-grid dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.detail-definition-grid dd {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.bon-total-card h3 {
+  margin-bottom: 15px;
+}
+
+.bon-grand-total {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  border-top: 2px solid var(--primary);
+  padding-top: 17px;
+}
+
+.bon-grand-total span {
+  color: var(--muted);
+}
+
+.bon-grand-total strong {
+  color: var(--primary);
+  font-size: clamp(1.65rem, 2.4vw, 2.1rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.bon-action-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.button--danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.button--danger:hover {
+  border-color: #8f1c14;
+  background: #8f1c14;
+}
+
+.history-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 18px;
+  border-radius: 13px;
+  padding: 13px;
+  background: #f5f8fb;
+  color: var(--primary);
+}
+
+.history-card svg {
+  flex: 0 0 auto;
+}
+
+.history-card strong,
+.history-card span {
+  display: block;
+}
+
+.history-card span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.danger-information-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border-color: #efb5af;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.danger-information-card svg {
+  flex: 0 0 auto;
+}
+
+.danger-information-card h3 {
+  margin-bottom: 5px;
+}
+
+.danger-information-card p,
+.danger-information-card small {
+  margin-bottom: 0;
+  color: #7a2923;
+}
+
+.workflow-dialog-backdrop {
+  z-index: 110;
+}
+
+.confirmation-dialog {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-radius: 20px;
+  padding: 24px;
+  background: #ffffff;
+  box-shadow: 0 30px 80px rgba(10, 25, 40, 0.3);
+}
+
+.confirmation-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.confirmation-dialog-header h2 {
+  margin-bottom: 6px;
+}
+
+.confirmation-dialog > p {
+  margin: 8px 0 20px;
+}
+
+.confirmation-dialog-content {
+  display: grid;
+  gap: 15px;
+}
+
+.confirmation-summary {
+  display: grid;
+  gap: 5px;
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--primary-soft);
+}
+
+.confirmation-summary span,
+.confirmation-summary small {
+  color: var(--primary-strong);
+}
+
+.confirmation-summary strong {
+  color: var(--primary);
+  font-size: 1.55rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirmation-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.confirmation-dialog textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 13px;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.confirmation-dialog textarea:focus {
+  outline: 3px solid rgba(31, 78, 120, 0.15);
+  border-color: var(--primary);
+}
+
+.form-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 11px;
+  padding: 11px 12px;
+  background: var(--warning-soft);
+  color: #744300;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.form-warning svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1180px) {
+  .settlement-layout,
+  .bon-detail-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .settlement-layout,
+  .bon-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settlement-summary,
+  .bon-total-card {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .workflow-page {
+    gap: 14px;
+  }
+
+  .workflow-heading,
+  .bon-detail-hero {
+    align-items: flex-start;
+    border-radius: 17px;
+    padding: 18px;
+  }
+
+  .workflow-heading-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .workflow-card {
+    border-radius: 16px;
+    padding: 17px;
+  }
+
+  .workflow-card-heading--split {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workflow-card-heading--split > .text-button {
+    width: fit-content;
+    margin-left: 50px;
+  }
+
+  .settlement-checkbox-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .settlement-bon-amount {
+    grid-column: 2;
+    margin-top: 4px;
+    text-align: left;
+  }
+
+  .settlement-detail-button {
+    margin-left: 40px;
+  }
+
+  .bon-item-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .bon-item-price {
+    text-align: left;
+  }
+
+  .detail-definition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-dialog {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px max(20px, env(safe-area-inset-bottom));
+  }
+
+  .workflow-dialog-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .confirmation-dialog-actions {
+    position: sticky;
+    bottom: 0;
+    flex-direction: column-reverse;
+    padding-top: 14px;
+    background: #ffffff;
+  }
+
+  .confirmation-dialog-actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .workflow-heading-icon {
+    display: none;
+  }
+
+  .bon-detail-hero {
+    flex-direction: column;
+  }
+
+  .bon-detail-hero .status-badge {
+    align-self: flex-start;
+  }
+
+  .settlement-summary-row,
+  .bon-total-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .settlement-summary-row strong,
+  .bon-total-row strong {
+    text-align: left;
+  }
+}
