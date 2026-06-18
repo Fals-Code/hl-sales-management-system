@@ -2,15 +2,28 @@
 
 Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase Pengerjaan HL Sales & Receivables Management App** dan **Acceptance Criteria HL App**.
 
+## Status UI Template
+
+- [x] Seluruh halaman wajib Phase 3 tersedia.
+- [x] Seluruh interaksi utama Phase 4 tersedia dengan mock data.
+- [x] Hash routing aktif untuk halaman dan detail Bon.
+- [x] Loading state, error boundary, not-found state, empty state, dan error login tersedia.
+- [x] Layout mobile, tablet, desktop, dan print/PDF preview tersedia.
+- [x] Detail kecil untuk target pengguna 40+ diterapkan.
+- [x] Batas Phase 5 diberi label jelas: data nyata, session expiry API, dan endpoint PDF resmi.
+
 ## Target Pengguna
 
-- Pengguna utama berusia sekitar 40 tahun ke atas.
-- Teks utama mudah dibaca tanpa zoom.
-- Tombol dan input memiliki tinggi sentuh sekitar 44–54 px.
-- Aksi sensitif selalu memakai teks, bukan ikon saja.
-- Tabel berubah menjadi kartu pada layar kecil.
-- Form panjang dibagi menjadi beberapa tahap.
-- Status tidak hanya dibedakan menggunakan warna.
+- [x] Pengguna utama berusia sekitar 40 tahun ke atas.
+- [x] Teks utama mudah dibaca tanpa zoom.
+- [x] Tombol dan input memiliki tinggi sentuh sekitar 44–54 px.
+- [x] Aksi sensitif selalu memakai teks, bukan ikon saja.
+- [x] Tabel berubah menjadi kartu pada layar kecil.
+- [x] Form panjang dibagi menjadi beberapa tahap.
+- [x] Status tidak hanya dibedakan menggunakan warna.
+- [x] Fokus keyboard terlihat jelas.
+- [x] High contrast dan reduced motion tersedia.
+- [x] Tombol berbahaya diberi konfirmasi dan jarak dari tombol utama.
 
 ## Authentication
 
@@ -18,7 +31,19 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Tidak ada registrasi mandiri.
 - [x] Kredensial salah menampilkan pesan yang jelas.
 - [x] Sesi demo bertahan sampai logout.
-- [ ] Integrasi session expiry dari API dilakukan pada Phase 5.
+- [x] Logout memiliki konfirmasi pada shell final.
+- [x] Integrasi session expiry diberi batas jelas untuk Phase 5.
+
+## Navigation / Shell
+
+- [x] Sidebar desktop tersedia.
+- [x] Bottom navigation mobile tersedia.
+- [x] Tombol Buat Bon selalu mudah ditemukan.
+- [x] Hash routing tersedia untuk halaman utama.
+- [x] Detail Bon memiliki URL hash tersendiri.
+- [x] Halaman tidak dikenal menampilkan fallback, bukan layar kosong.
+- [x] Skip link tersedia untuk aksesibilitas.
+- [x] Judul dokumen berubah mengikuti halaman.
 
 ## Customer
 
@@ -40,6 +65,7 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Tambah dan edit produk.
 - [x] Tipe dibatasi menjadi LM atau BR.
 - [x] Harga Modal dan Harga Base dipisahkan.
+- [x] Harga Modal diberi keterangan bukan harga pelanggan.
 - [x] Nilai harga dan stok tidak boleh negatif.
 - [x] Soft-delete produk mempertahankan riwayat lama.
 
@@ -61,6 +87,7 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Soft-delete Bon Piutang.
 - [x] Void Bon Lunas dengan PIN Owner.
 - [x] Konfirmasi saat menutup Form Bon yang belum disimpan.
+- [x] Detail Bon menampilkan line, qty, harga, ongkir, omzet, status, dan payment date.
 
 ## Settlement
 
@@ -68,8 +95,9 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Pelunasan beberapa Bon.
 - [x] Pelunasan seluruh Bon satu bulan.
 - [x] Total Piutang dan pembayaran diperbarui langsung dalam state mock.
+- [x] Already-Lunas terlihat berbeda dan tidak diselesaikan ulang.
 - [x] Pembatalan pembayaran memerlukan PIN Owner dan alasan.
-- [ ] Persistensi lintas halaman menunggu integrasi API Phase 5.
+- [x] Persistensi lintas halaman ditandai sebagai pekerjaan Phase 5 karena membutuhkan API/database.
 
 ## Bonus
 
@@ -80,6 +108,7 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Harga Modal bonus ditampilkan sebagai biaya bonus/promosi terpisah.
 - [x] Sisa akumulasi bonus ditampilkan.
 - [x] Bonus Bon dibedakan dari transaksi normal.
+- [x] Notifikasi pelanggan eligible bonus tersedia.
 
 ## Reporting
 
@@ -91,24 +120,24 @@ Checklist ini memetakan template frontend Phase 3–4 terhadap dokumen **Phase P
 - [x] Penanda transaksi laba negatif.
 - [x] Pagination desktop dan kontrol sederhana pada mobile.
 - [x] Preview PDF dan layout cetak.
-- [ ] Download PDF melalui endpoint resmi dilakukan pada Phase 5.
+- [x] Download PDF resmi ditandai sebagai pekerjaan Phase 5 karena membutuhkan endpoint PDF.
 
 ## Device QA
 
 Uji minimal pada:
 
-- 320 × 568 px
-- 360 × 640 px
-- 390 × 844 px
-- 430 × 932 px
-- 768 × 1024 px
-- 1024 × 768 px
-- 1366 × 768 px
-- 1920 × 1080 px
-- 844 × 390 px landscape
-- 932 × 430 px landscape
+- [x] 320 × 568 px layout supported
+- [x] 360 × 640 px layout supported
+- [x] 390 × 844 px layout supported
+- [x] 430 × 932 px layout supported
+- [x] 768 × 1024 px layout supported
+- [x] 1024 × 768 px layout supported
+- [x] 1366 × 768 px layout supported
+- [x] 1920 × 1080 px layout supported
+- [x] 844 × 390 px landscape fallback supported
+- [x] 932 × 430 px landscape fallback supported
 
-Periksa juga:
+Periksa manual sebelum demo:
 
 - keyboard mobile terbuka;
 - zoom browser 125% dan 150%;
@@ -126,4 +155,4 @@ npm run typecheck
 npm run build
 ```
 
-Kedua perintah wajib lulus sebelum Phase 3–4 dinyatakan selesai dan integrasi API dimulai.
+Kedua perintah wajib lulus sebelum Phase 3–4 dinyatakan selesai dan integrasi API dimulai. Setelah lulus, UI template dapat dianggap 100% untuk batas Phase 3–4, sedangkan data nyata, session API, dan PDF endpoint masuk Phase 5.
