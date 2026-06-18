@@ -3,16 +3,31 @@ import { BrandLogo } from "./BrandLogo";
 import { MobileNavButton } from "./components";
 import { navigation, type PageKey } from "./data";
 
-export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, comfortableMode, onChangePage, onCloseMobile, onToggleComfort, onLogout }: { activePage: PageKey; selectedBonNumber: string | null; mobileMenuOpen: boolean; comfortableMode: boolean; onChangePage: (page: PageKey) => void; onCloseMobile: () => void; onToggleComfort: () => void; onLogout: () => void }) {
+export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onChangePage, onCloseMobile, onLogout }: { activePage: PageKey; selectedBonNumber: string | null; mobileMenuOpen: boolean; onChangePage: (page: PageKey) => void; onCloseMobile: () => void; onLogout: () => void }) {
   return <>
     <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
-      <div className="brand-block"><BrandLogo size={45} /><div><strong>HL Sales</strong><span>Manajemen Toko</span></div><button className="icon-button sidebar-close" onClick={onCloseMobile} aria-label="Tutup menu"><X size={24} /></button></div>
+      <div className="brand-block">
+        <BrandLogo size={45} />
+        <div><strong>HL Sales</strong><span>Manajemen Toko</span></div>
+        <button className="icon-button sidebar-close" type="button" onClick={onCloseMobile} aria-label="Tutup menu"><X size={24} /></button>
+      </div>
+
       <div className="sidebar-label">Menu utama</div>
-      <nav className="sidebar-nav">{navigation.map((item) => { const Icon = item.icon; const active = activePage === item.key && !selectedBonNumber; return <button key={item.key} className={`nav-item ${active ? "nav-item--active" : ""}`} onClick={() => onChangePage(item.key)} aria-current={active ? "page" : undefined}><Icon size={22} /><span>{item.label}</span></button>; })}</nav>
-      <button className={`sidebar-help-card ${comfortableMode ? "sidebar-help-card--active" : ""}`} type="button" onClick={onToggleComfort} aria-pressed={comfortableMode}><Accessibility size={24} /><span><strong>{comfortableMode ? "Tampilan nyaman aktif" : "Gunakan tampilan nyaman"}</strong><small>{comfortableMode ? "Teks dan tombol dibuat lebih besar." : "Perbesar teks dan ruang antarelemen."}</small></span></button>
-      <div className="sidebar-footer"><button className={`nav-item ${activePage === "settings" && !selectedBonNumber ? "nav-item--active" : ""}`} onClick={() => onChangePage("settings")}><Settings size={22} /><span>Pengaturan</span></button><button className="nav-item nav-item--danger" onClick={onLogout}><LogOut size={22} /><span>Keluar</span></button></div>
+      <nav className="sidebar-nav">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const active = activePage === item.key && !selectedBonNumber;
+          return <button key={item.key} className={`nav-item ${active ? "nav-item--active" : ""}`} type="button" onClick={() => onChangePage(item.key)} aria-current={active ? "page" : undefined}><Icon size={22} /><span>{item.label}</span></button>;
+        })}
+      </nav>
+
+      <div className="sidebar-footer">
+        <span className="sidebar-footer-label">Akun & aplikasi</span>
+        <button className={`nav-item ${activePage === "settings" && !selectedBonNumber ? "nav-item--active" : ""}`} type="button" onClick={() => onChangePage("settings")}><Settings size={22} /><span>Pengaturan</span></button>
+        <button className="nav-item nav-item--danger" type="button" onClick={onLogout}><LogOut size={22} /><span>Keluar</span></button>
+      </div>
     </aside>
-    {mobileMenuOpen && <button className="sidebar-backdrop" onClick={onCloseMobile} aria-label="Tutup menu" />}
+    {mobileMenuOpen && <button className="sidebar-backdrop" type="button" onClick={onCloseMobile} aria-label="Tutup menu" />}
   </>;
 }
 
