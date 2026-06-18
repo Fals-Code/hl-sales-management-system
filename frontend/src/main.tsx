@@ -13,6 +13,7 @@ import "./final-template.css";
 import "./acceptance-ui.css";
 import "./acceptance-detail-polish.css";
 import "./app-state.css";
+import "./sidebar-refinement.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
