@@ -3,7 +3,18 @@ import { BrandLogo } from "./BrandLogo";
 import { MobileNavButton } from "./components";
 import { navigation, type PageKey } from "./data";
 
-export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onChangePage, onCloseMobile, onLogout }: { activePage: PageKey; selectedBonNumber: string | null; mobileMenuOpen: boolean; onChangePage: (page: PageKey) => void; onCloseMobile: () => void; onLogout: () => void }) {
+type AppSidebarProps = {
+  activePage: PageKey;
+  selectedBonNumber: string | null;
+  mobileMenuOpen: boolean;
+  comfortableMode?: boolean;
+  onChangePage: (page: PageKey) => void;
+  onCloseMobile: () => void;
+  onToggleComfort?: () => void;
+  onLogout: () => void;
+};
+
+export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onChangePage, onCloseMobile, onLogout }: AppSidebarProps) {
   return <>
     <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
       <div className="brand-block">
