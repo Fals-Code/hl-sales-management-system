@@ -1,0 +1,151 @@
+/* Simple sticky top navigation. Primary actions remain obvious without filling the bar with controls. */
+
+.topbar.topbar--simple {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid rgba(216, 222, 230, 0.92);
+  padding: 10px clamp(18px, 2.4vw, 34px);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 24px rgba(23, 32, 42, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  isolation: isolate;
+}
+
+.topbar-title--simple {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.topbar-title--simple h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.28rem, 1.7vw, 1.7rem);
+  font-weight: 850;
+  letter-spacing: -0.018em;
+  line-height: 1.18;
+}
+
+.topbar-title--simple .topbar-context {
+  max-width: min(760px, 54vw);
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.79rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions--simple {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+}
+
+.topbar-actions--simple .topbar-create-button {
+  min-height: 46px;
+  border-radius: 12px;
+  padding-inline: 17px;
+  white-space: nowrap;
+}
+
+.topbar-actions--simple .notification-button,
+.topbar-actions--simple .user-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.user-chip--compact {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.user-chip--compact .user-avatar {
+  border: 1px solid #cbdce8;
+  background: #eaf2f8;
+  color: #174f78;
+  font-size: 0.82rem;
+  box-shadow: none;
+}
+
+.topbar--simple .notification-panel {
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+/* Avoid sticky elements being hidden by accidental parent clipping. */
+.main-area {
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .topbar.topbar--simple {
+    min-height: 74px;
+    padding-inline: 18px;
+  }
+
+  .topbar-title--simple .topbar-context {
+    max-width: 42vw;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar.topbar--simple {
+    top: 0;
+    min-height: 66px;
+    gap: 10px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  }
+
+  .topbar-title--simple {
+    flex: 1 1 auto;
+  }
+
+  .topbar-title--simple h1 {
+    font-size: clamp(1.15rem, 5.2vw, 1.38rem);
+  }
+
+  .topbar-title--simple .topbar-context,
+  .topbar-actions--simple .topbar-create-button,
+  .user-chip--compact {
+    display: none;
+  }
+
+  .topbar-actions--simple {
+    gap: 6px;
+  }
+
+  .topbar-actions--simple .notification-button {
+    display: grid;
+    width: 43px;
+    height: 43px;
+  }
+}
+
+@media (max-width: 390px) {
+  .topbar.topbar--simple {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .mobile-menu-button,
+  .topbar-actions--simple .notification-button {
+    width: 41px;
+    height: 41px;
+  }
+}
+
+@media print {
+  .topbar.topbar--simple {
+    display: none !important;
+  }
+}
