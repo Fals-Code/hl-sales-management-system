@@ -1,0 +1,42 @@
+.button--compact,
+.icon-button,
+.text-button,
+.dashboard-row-action,
+.acceptance-quantity button,
+.acceptance-product-actions button,
+.acceptance-footer-buttons button {
+  min-height: 44px;
+}
+
+.icon-button,
+.dashboard-row-action,
+.acceptance-quantity button {
+  min-width: 44px;
+}
+
+.discount-step-grid,
+.discount-row,
+[class*="discount-grid"] {
+  grid-template-columns: minmax(0, 1fr) 46px;
+}
+
+.piutang-estimate-label::after {
+  content: "Estimasi/Belum Diakui";
+}
+
+@media (max-width: 767px) {
+  .acceptance-form-grid,
+  .acceptance-detail-layout,
+  .acceptance-product-layout,
+  .dashboard-main-grid,
+  .bon-mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acceptance-bon-dialog,
+  .acceptance-master-dialog {
+    width: min(100%, 767px);
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+}
