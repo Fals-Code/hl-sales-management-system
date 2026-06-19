@@ -100,7 +100,8 @@ export class TransactionService {
       if (existing.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be edited.");
 
       const bonusOnly = isBonusOnly(input.items);
-      const bonNumber = await resolveBonNumber(tx, input.bonNumber ?? existing.bonNumber, bonId, bonusOnly);
+      const requestedNumber = input.bonNumber ?? (numberMatchesKind(existing.bonNumber, bonusOnly) ? existing.bonNumber : undefined);
+      const bonNumber = await resolveBonNumber(tx, requestedNumber, bonId, bonusOnly);
 
       await new BonusService(tx).reverseBonUsage({
         customerId: existing.customerId,
@@ -276,6 +277,10 @@ function validateBonNumberForItems(value: string, items: BonItemInput[]) {
     throw new ValidationError("Transaksi normal harus menggunakan prefix BON.");
   }
   return normalized;
+}
+
+function numberMatchesKind(value: string, bonusOnly: boolean) {
+  return bonusOnly ? value.startsWith("BONUS-") : value.startsWith("BON-");
 }
 
 async function uniqueBonNumber(tx: Prisma.TransactionClient, prefix: "BON" | "BONUS") {
