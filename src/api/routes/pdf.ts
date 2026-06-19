@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { renderBonPdf } from "../../services/pdfBonService";
 import { renderReportPdf, type PdfReportInput } from "../../services/pdfReportService";
 import type { ApiContext } from "../types";
 import { reportFilterSchema } from "../schemas/common";
@@ -7,7 +8,7 @@ import { toReportFilters } from "./reports";
 export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/pdf/transactions", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    return sendPdf(reply, {
+    return sendReportPdf(reply, {
       kind: "transactions",
       title: "Rekap Transaksi",
       subtitle: "Cash basis untuk transaksi Lunas dan Tanggal Bon untuk Piutang",
@@ -19,7 +20,7 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
 
   app.get("/api/v1/pdf/receivables", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    return sendPdf(reply, {
+    return sendReportPdf(reply, {
       kind: "receivables",
       title: "Rekap Piutang",
       subtitle: "Estimasi nilai yang belum diakui sebagai omzet",
@@ -33,7 +34,7 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
     const id = String((request.params as { id: string }).id);
     const customer = await ctx.db.customer.findFirstOrThrow({ where: { id, deletedAt: null }, select: { name: true, code: true } });
     const filters = { ...toReportFilters(reportFilterSchema.parse(request.query)), customerId: id };
-    return sendPdf(reply, {
+    return sendReportPdf(reply, {
       kind: "customer",
       title: "Rekap Pelanggan",
       subtitle: `${customer.name}${customer.code ? ` - ${customer.code}` : ""}`,
@@ -45,7 +46,7 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
 
   app.get("/api/v1/pdf/overall", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    return sendPdf(reply, {
+    return sendReportPdf(reply, {
       kind: "overall",
       title: "Rekap Keseluruhan",
       subtitle: "Ringkasan omzet, laba, pembayaran, Piutang, dan bonus",
@@ -56,7 +57,7 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
 
   app.get("/api/v1/pdf/bonus-log", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    return sendPdf(reply, {
+    return sendReportPdf(reply, {
       kind: "bonus-log",
       title: "Log Bonus",
       subtitle: "Riwayat perolehan, penggunaan, dan pembalikan unit bonus",
@@ -64,15 +65,47 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
       filters
     });
   });
+
+  app.get("/api/v1/pdf/bons/:id", async (request, reply) => {
+    const id = String((request.params as { id: string }).id);
+    const bon = await ctx.db.bon.findFirstOrThrow({
+      where: { id, deletedAt: null },
+      include: {
+        customer: { select: { name: true, code: true, phone: true, address: true } },
+        items: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            productNameSnapshot: true,
+            productTypeSnapshot: true,
+            finalPrice: true,
+            quantity: true,
+            subtotal: true,
+            isBonus: true
+          }
+        }
+      }
+    });
+    const buffer = await renderBonPdf(bon);
+    return sendPdfBuffer(reply, buffer, `bon-${slug(bon.bonNumber)}.pdf`);
+  });
 }
 
-async function sendPdf(reply: { header: (name: string, value: string) => unknown; send: (payload: Buffer) => unknown }, input: PdfReportInput) {
+async function sendReportPdf(reply: PdfReply, input: PdfReportInput) {
   const buffer = await renderReportPdf(input);
+  return sendPdfBuffer(reply, buffer, `${slug(input.title)}.pdf`);
+}
+
+function sendPdfBuffer(reply: PdfReply, buffer: Buffer, filename: string) {
   reply.header("Content-Type", "application/pdf");
-  reply.header("Content-Disposition", `attachment; filename="${slug(input.title)}.pdf"`);
+  reply.header("Content-Disposition", `attachment; filename="${filename}"`);
   reply.header("Content-Length", String(buffer.length));
   return reply.send(buffer);
 }
+
+type PdfReply = {
+  header: (name: string, value: string) => unknown;
+  send: (payload: Buffer) => unknown;
+};
 
 function slug(value: string) {
   return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
