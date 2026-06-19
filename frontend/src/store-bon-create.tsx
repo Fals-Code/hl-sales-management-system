@@ -1,1 +1,1 @@
-export { StoreBonCreatePage } from "./bon-create/StoreBonCreatePage";
+export { TransactionCreatePage as StoreBonCreatePage } from "./bon-create/TransactionCreatePage";
