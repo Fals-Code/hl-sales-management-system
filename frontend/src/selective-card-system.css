@@ -1,0 +1,156 @@
+/* Selective card system: cards are reserved for independent metrics, summaries, and focused actions. */
+
+/* KPI metrics are easier to compare when each value has a clear boundary. */
+.summary-grid,
+.acceptance-stat-grid {
+  gap: 12px;
+  border: 0;
+  padding: 0;
+}
+
+.summary-card,
+.acceptance-stat {
+  min-height: 116px;
+  border: 1px solid #d9e1e8;
+  border-radius: 15px;
+  padding: 16px 17px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(23, 32, 42, 0.045);
+}
+
+.summary-card:last-child,
+.acceptance-stat:last-child,
+.summary-card:nth-child(even),
+.acceptance-stat:nth-child(even),
+.summary-card:nth-last-child(-n + 2),
+.acceptance-stat:nth-last-child(-n + 2) {
+  border: 1px solid #d9e1e8;
+}
+
+.summary-card:hover {
+  border-color: #aebfcd;
+}
+
+.summary-card-icon,
+.acceptance-stat > span {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+/* A compact card is justified for sticky summaries that support a larger workflow. */
+.bonus-acceptance-summary,
+.settlement-acceptance-summary,
+.bon-acceptance-summary,
+.acceptance-live-summary,
+.acceptance-final-summary,
+.report-audit-summary,
+.settings-summary-card,
+.bonus-progress-card,
+.bonus-detail-card {
+  border: 1px solid #d9e1e8;
+  border-radius: 16px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(23, 32, 42, 0.05);
+}
+
+.acceptance-detail-layout > aside,
+.dashboard-columns > aside,
+.settings-layout > aside {
+  border-left: 0;
+  padding-left: 0;
+}
+
+/* Keep distinct business highlights contained, but avoid making every section a box. */
+.receivable-acceptance-hero,
+.negative-profit-card,
+.acceptance-warning,
+.acceptance-info-banner,
+.acceptance-info-box,
+.success-banner {
+  border-radius: 14px;
+}
+
+/* Quick actions stay light and flat. They are navigation, not content cards. */
+.quick-action-grid {
+  gap: 8px;
+  border: 0;
+}
+
+.quick-action-card {
+  min-height: 72px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 11px 13px;
+  background: #f4f7f9;
+}
+
+.quick-action-card:last-child {
+  border: 1px solid transparent;
+}
+
+.quick-action-card:hover {
+  border-color: #c7d4de;
+  background: #eef3f7;
+}
+
+/* Tables, lists, filters, and page sections remain flat with dividers. */
+.acceptance-card,
+.panel,
+.final-card,
+.acceptance-toolbar,
+.acceptance-filter-card,
+.acceptance-page-header,
+.final-page-header {
+  box-shadow: none;
+}
+
+.acceptance-product-card,
+.acceptance-customer-card,
+.acceptance-bon-row,
+.paid-bon-row,
+.bonus-eligible-row,
+.bonus-bon-history article,
+.settlement-selection-card,
+.setting-toggle-card,
+.settings-action-row {
+  box-shadow: none;
+}
+
+/* Login is a focused task, so one contained surface is appropriate. */
+.login-shell {
+  box-shadow: 0 16px 42px rgba(23, 32, 42, 0.085);
+}
+
+@media (max-width: 760px) {
+  .summary-grid,
+  .acceptance-stat-grid {
+    gap: 10px;
+  }
+
+  .summary-card,
+  .acceptance-stat {
+    min-height: 108px;
+    padding: 14px;
+  }
+
+  .bonus-acceptance-summary,
+  .settlement-acceptance-summary,
+  .bon-acceptance-summary,
+  .acceptance-live-summary,
+  .acceptance-final-summary,
+  .report-audit-summary,
+  .settings-summary-card,
+  .bonus-progress-card,
+  .bonus-detail-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .summary-grid,
+  .acceptance-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
