@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { AuthService } from "../services/authService";
 import { BonusService } from "../services/bonusService";
 import { CustomerService } from "../services/customerService";
+import { NotificationService } from "../services/notificationService";
 import { ProductService } from "../services/productService";
 import { ReportingService } from "../services/reportingService";
 import { SettlementService } from "../services/settlementService";
@@ -23,6 +24,7 @@ import { registerBonRoutes } from "./routes/bons";
 import { registerBonusRoutes } from "./routes/bonus";
 import { registerBootstrapRoutes } from "./routes/bootstrap";
 import { registerCustomerRoutes } from "./routes/customers";
+import { registerNotificationRoutes } from "./routes/notifications";
 import { registerPdfRoutes } from "./routes/pdf";
 import { registerProductRoutes } from "./routes/products";
 import { registerReportRoutes } from "./routes/reports";
@@ -34,6 +36,7 @@ export async function buildApp(
 ) {
   const db = options.db ?? prisma;
   const auth = new AuthService(db);
+  const notifications = new NotificationService(db);
   const ctx: ApiContext = {
     db,
     auth,
@@ -44,6 +47,7 @@ export async function buildApp(
     bonus: new BonusService(db),
     reports: new ReportingService(db),
     voids: new VoidService(db, auth),
+    notifications,
     cookieName: process.env.SESSION_COOKIE_NAME ?? "hl_session",
     cookieOptions: {
       httpOnly: true,
@@ -97,7 +101,7 @@ export async function buildApp(
   await app.register(rateLimit, { max: 200, timeWindow: "1 minute" });
   await app.register(swagger, {
     openapi: {
-      info: { title: "HL Backend API", version: "0.2.0" },
+      info: { title: "HL Backend API", version: "0.3.0" },
       components: {
         securitySchemes: {
           cookieAuth: { type: "apiKey", in: "cookie", name: ctx.cookieName },
@@ -174,6 +178,7 @@ export async function buildApp(
   void registerBonRoutes(app, ctx);
   void registerSettlementRoutes(app, ctx);
   void registerBonusRoutes(app, ctx);
+  registerNotificationRoutes(app, ctx);
   registerReportRoutes(app, ctx);
   void registerPdfRoutes(app, ctx);
 
@@ -204,6 +209,7 @@ function isLocalDevelopmentOrigin(origin: string) {
 function openApiTag(url: string) {
   if (url.includes("/auth/")) return "Authentication";
   if (url.includes("/bootstrap")) return "Bootstrap";
+  if (url.includes("/notifications")) return "Notifications";
   if (url.includes("/customers"))
     return url.includes("bonus") ? "Bonus" : "Customers";
   if (url.includes("/products")) return "Products";
