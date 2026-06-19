@@ -64,6 +64,17 @@ jobs:
           name: backend-test-log
           path: backend-test.log
 
+      - name: Generate sample Bon PDFs
+        if: steps.backend_tests.outcome == 'success'
+        run: npx tsx scripts/render-sample-bon-pdf.ts
+
+      - name: Upload sample Bon PDFs
+        if: steps.backend_tests.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-bon-pdfs
+          path: artifacts/pdf-preview/*.pdf
+
       - name: Fail when backend tests fail
         if: steps.backend_tests.outcome == 'failure'
         run: exit 1
