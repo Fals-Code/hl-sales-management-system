@@ -1,10 +1,10 @@
-name: Phase 4 Audit Validation
+name: Phase 4 Readiness Validation
 
 on:
   push:
-    branches: [phase-4-audit-fix]
+    branches: [phase-4-audit-fix, phase-4-readiness-fix]
   pull_request:
-    branches: [phase-4-frontend]
+    branches: [phase-4-frontend, phase-4-audit-fix]
 
 jobs:
   backend:
@@ -36,6 +36,7 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:migrate:deploy
       - run: npm run typecheck
+      - run: npm run lint
       - name: Run backend tests
         id: backend_tests
         continue-on-error: true
@@ -59,6 +60,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm install
+      - run: npm install --no-audit --no-fund
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
