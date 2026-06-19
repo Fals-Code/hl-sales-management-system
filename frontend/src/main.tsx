@@ -15,6 +15,7 @@ import "./acceptance-detail-polish.css";
 import "./app-state.css";
 import "./sidebar-refinement.css";
 import "./navbar-refinement.css";
+import "./profile-menu-refinement.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
