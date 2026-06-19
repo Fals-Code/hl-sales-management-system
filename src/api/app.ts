@@ -70,11 +70,27 @@ export async function buildApp(
       String(request.headers["x-request-id"] ?? randomUUID()),
   });
 
+  const configuredFrontendOrigins = (process.env.FRONTEND_ORIGIN ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.setErrorHandler(errorHandler);
   await app.register(cookie);
   await app.register(helmet);
   await app.register(cors, {
-    origin: process.env.FRONTEND_ORIGIN ?? false,
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        configuredFrontendOrigins.includes(origin) ||
+        isLocalDevelopmentOrigin(origin)
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+    },
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
@@ -162,6 +178,27 @@ export async function buildApp(
   void registerPdfRoutes(app, ctx);
 
   return app;
+}
+
+function isLocalDevelopmentOrigin(origin: string) {
+  if (process.env.NODE_ENV === "production") return false;
+
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+
+    const hostname = url.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+      return true;
+    }
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+
+    const private172 = hostname.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+    return private172 !== null && Number(private172[1]) >= 16 && Number(private172[1]) <= 31;
+  } catch {
+    return false;
+  }
 }
 
 function openApiTag(url: string) {
