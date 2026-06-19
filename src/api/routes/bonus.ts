@@ -13,7 +13,7 @@ const dateInputSchema = z.string().refine((value) => {
 
 const bonusBonSchema = z
   .object({
-    bonNumber: z.string().trim().regex(BON_NUMBER_PATTERN, "Format Nomor Bon tidak valid."),
+    bonNumber: z.string().trim().regex(BON_NUMBER_PATTERN, "Format Nomor Bon tidak valid.").optional(),
     customerId: z.string().min(1),
     description: z.string().trim().max(1000).optional(),
     items: z.array(z.object({ productId: z.string().min(1), quantity: quantitySchema, kind: z.literal("BONUS").optional() }).strict()).min(1),
@@ -37,7 +37,7 @@ export async function registerBonusRoutes(app: FastifyInstance, ctx: ApiContext)
     return send(
       reply,
       await ctx.transactions.createBon({
-        bonNumber: normalizeBonNumber(body.bonNumber),
+        bonNumber: body.bonNumber ? normalizeBonNumber(body.bonNumber) : undefined,
         customerId: body.customerId,
         description: body.description,
         items: body.items.map((item) => ({ ...item, kind: "BONUS" })),
