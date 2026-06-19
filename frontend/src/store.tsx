@@ -29,6 +29,7 @@ type Store = State & {
   updateBon: (originalNumber: string, value: StoredBon) => void;
   updateBonStatus: (number: string, status: AcceptanceBon["status"], paymentDate?: string) => void;
   softDeleteBon: (number: string) => void;
+  refreshFromApi: () => Promise<void>;
   resetStore: () => void;
 };
 
@@ -145,11 +146,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const bonusDelta = existing.isBonus && existing.status !== "Void" ? -bonUnits(existing) : 0;
       return { ...current, bons: current.bons.map((item) => item.number === number ? { ...item, deletedAt: new Date().toISOString() } : item), customers: current.customers.map((customer) => customer.code === existing.customerCode ? { ...customer, accumulatedPaidOmzet: Math.max(0, customer.accumulatedPaidOmzet + revenueDelta), bonusesGranted: Math.max(0, customer.bonusesGranted + bonusDelta) } : customer) };
     }),
+    refreshFromApi: hydrateFromApi,
     resetStore: () => {
       if (useApi) resetApiState();
       else setState(seedState());
     }
-  }), [resetApiState, state]);
+  }), [hydrateFromApi, resetApiState, state]);
 
   if (useApi && apiSessionActive && hydrationStatus !== "ready") {
     return (
