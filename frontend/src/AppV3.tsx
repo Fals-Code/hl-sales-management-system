@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { bonusesAvailable } from "./acceptance-data";
 import { AppContent } from "./AppContent";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppMobileNav, AppSidebar, AppTopbar } from "./AppNavigation";
@@ -9,7 +8,6 @@ import { navigateToBon, navigateToCreateBon, navigateToPage, readHashRoute, type
 import { LoginPage } from "./LoginPage";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { PageLoadingState, RouteFallbackState } from "./PageStates";
-import { useAppStore } from "./store";
 
 const pageDescriptions: Record<PageKey, string> = {
   dashboard: "Ringkasan cash basis, Piutang, dan tindakan penting hari ini",
@@ -32,7 +30,6 @@ const readBooleanSetting = (key: string, fallback: boolean) => {
 };
 
 export default function AppV3() {
-  const { bons, customers } = useAppStore();
   const [signedIn, setSignedIn] = useState(() => useApi ? false : window.localStorage.getItem("hl-demo-session") === "active");
   const [authChecking, setAuthChecking] = useState(useApi);
   const [route, setRoute] = useState<HashRoute>(() => readHashRoute());
@@ -105,8 +102,6 @@ export default function AppV3() {
     return () => window.removeEventListener("keydown", closeTransientUi);
   }, []);
 
-  const receivableCount = bons.filter((bon) => !bon.deletedAt && bon.status === "Piutang" && !bon.isBonus).length;
-  const eligibleBonusCount = customers.filter((customer) => bonusesAvailable(customer) > 0).length;
   const pageTitle = route.bonNumber ? "Detail Bon" : route.page === "create-bon" ? "Buat Bon" : navigation.find((item) => item.key === route.page)?.label ?? "Dashboard";
   const pageDescription = route.bonNumber ? route.bonNumber : pageDescriptions[route.page];
 
@@ -149,7 +144,7 @@ export default function AppV3() {
     <a className="skip-link" href="#main-content">Langsung ke isi halaman</a>
     <AppSidebar activePage={route.page} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} comfortableMode={comfortableMode} onChangePage={changePage} onCloseMobile={() => setMobileMenuOpen(false)} onToggleComfort={() => setComfortableMode((value) => !value)} onLogout={() => setLogoutOpen(true)} />
     <div className="main-area">
-      <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} notificationCount={receivableCount + eligibleBonusCount} receivableCount={receivableCount} eligibleBonusCount={eligibleBonusCount} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onGoReceivables={() => changePage("receivables")} onGoBonus={() => changePage("bonus")} onOpenSettings={() => changePage("settings")} onLogout={() => setLogoutOpen(true)} />
+      <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onOpenSettings={() => changePage("settings")} onLogout={() => setLogoutOpen(true)} />
       <main className="page-content" id="main-content" tabIndex={-1} aria-busy={pageLoading}>
         <AppErrorBoundary>{pageLoading ? <PageLoadingState label={`Membuka ${pageTitle}`} /> : route.notFound ? <RouteFallbackState onBack={() => changePage("dashboard")} /> : <AppContent activePage={route.page} selectedBonNumber={route.bonNumber} createBonMode={route.createBonMode} createBonCustomerCode={route.createBonCustomerCode} settlementCustomerCode={settlementCustomerCode} onChangePage={changePage} onOpenBon={(customerCode) => openBon(customerCode)} onOpenBonusBon={(customerCode) => openBon(customerCode, "bonus")} onViewBon={navigateToBon} onOpenSettlement={openSettlement} comfortableMode={comfortableMode} setComfortableMode={setComfortableMode} highContrast={highContrast} setHighContrast={setHighContrast} reducedMotion={reducedMotion} setReducedMotion={setReducedMotion} />}</AppErrorBoundary>
       </main>
