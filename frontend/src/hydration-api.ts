@@ -2,6 +2,7 @@ import {
   apiRequest,
   type ApiClientError
 } from "./api-client";
+import { collectPages } from "./pagination";
 
 export type ApiProductType = "LM" | "BR";
 export type ApiDiscountTierDto = { productType: ApiProductType; sequence: number; percentBps: number };
@@ -68,14 +69,12 @@ export type HydrationPayload = {
   bons: ApiBonDto[];
 };
 
-const PAGE_LIMIT = 100;
-
 export const hydrationApi = {
   load: async (): Promise<HydrationPayload> => {
     const [customerRows, products, bons] = await Promise.all([
-      apiRequest<ApiCustomerDto[]>(`/api/v1/customers?limit=${PAGE_LIMIT}&sortBy=name&sortOrder=asc`),
-      apiRequest<ApiProductDto[]>(`/api/v1/products?limit=${PAGE_LIMIT}&sortBy=name&sortOrder=asc`),
-      apiRequest<ApiBonDto[]>(`/api/v1/bons?limit=${PAGE_LIMIT}&sortBy=bonDate&sortOrder=desc`)
+      collectPages<ApiCustomerDto>("/api/v1/customers?sortBy=name&sortOrder=asc"),
+      collectPages<ApiProductDto>("/api/v1/products?sortBy=name&sortOrder=asc"),
+      collectPages<ApiBonDto>("/api/v1/bons?sortBy=bonDate&sortOrder=desc")
     ]);
 
     const customers = await Promise.all(customerRows.map(async (customer) => {
