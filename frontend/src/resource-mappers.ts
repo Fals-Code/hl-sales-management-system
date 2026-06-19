@@ -16,8 +16,8 @@ export type HydratedState = {
 export function mapHydrationPayload(payload: HydrationPayload): HydratedState {
   const customers = payload.customers.map(mapCustomer);
   const products = payload.products.map(mapProduct);
-  const customerCodes = new Map(customers.map((customer) => [customer.backendId, customer.code]));
-  const productIds = new Map(products.map((product) => [product.backendId, product.id]));
+  const customerCodes = new Map(customers.map((customer) => [customer.backendId, customer.code] as const));
+  const productIds = new Map(products.map((product) => [product.backendId, product.id] as const));
 
   for (const bon of payload.bons) {
     if (!customerCodes.has(bon.customerId)) {
