@@ -20,11 +20,17 @@ export const SESSION_EXPIRED_EVENT = "hl:session-expired";
 export async function apiRequest<T>(path: string, init: RequestInit = {}, timeoutMs = 10_000): Promise<T> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  const headers = new Headers(init.headers);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json", ...init.headers },
+      headers,
       signal: controller.signal
     });
     const payload = await readPayload<T>(response);
