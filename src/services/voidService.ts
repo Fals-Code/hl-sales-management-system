@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { AuthService } from "./authService";
 import { BonusService } from "./bonusService";
-import { restoreInventory } from "./inventoryService";
+import { lockInventoryRows, restoreInventory } from "./inventoryService";
 import { AUTHORIZATION_TYPE } from "../domain/constants";
 import { BusinessError } from "../domain/errors";
 import { toSafeMoneyNumber } from "../domain/money";
@@ -11,6 +11,7 @@ export class VoidService {
 
   async voidPaidBon(input: { bonId: string; userId: string; ownerPin: string; reason: string }) {
     return this.db.$transaction(async (tx) => {
+      await lockBonRow(tx, input.bonId);
       const bon = await tx.bon.findUnique({
         where: { id: input.bonId },
         include: { paymentLinks: true, items: true }
@@ -18,6 +19,7 @@ export class VoidService {
       if (!bon) throw new BusinessError("Bon not found.");
       if (bon.status !== "LUNAS") throw new BusinessError("Only Lunas Bon can be voided through this process.");
       if (!input.reason.trim()) throw new BusinessError("Void reason is required.");
+      if (bon.inventoryAppliedAt) await lockInventoryRows(tx, bon.items);
 
       const scopedAuth = new AuthService(tx as unknown as PrismaClient);
       const authorization = await scopedAuth.authorizeOwner({
@@ -89,4 +91,13 @@ export class VoidService {
       return tx.bon.findUniqueOrThrow({ where: { id: bon.id }, include: { voidRecord: true } });
     });
   }
+}
+
+async function lockBonRow(tx: Prisma.TransactionClient, bonId: string) {
+  await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Bon"
+    WHERE "id" = ${bonId}
+    FOR UPDATE
+  `;
 }
