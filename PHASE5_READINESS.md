@@ -1,10 +1,12 @@
 # Phase 5 Readiness Handoff
 
-Dokumen ini menjadi gate akhir sebelum integrasi penuh frontend dan API pada Phase 5.
+Dokumen ini menjadi catatan gate akhir sebelum integrasi penuh frontend dan API pada Phase 5.
 
-## Status saat ini
+## Status akhir
 
 **Code-level readiness: LULUS.**
+
+**Browser dan visual regression: LULUS.**
 
 Branch kesiapan:
 
@@ -44,16 +46,19 @@ Pull request:
 - ID database dipisahkan dari kode tampilan customer/product.
 - Form transaksi rugi menyediakan PIN Owner dan alasan.
 - Editor produk tidak lagi memakai `window.prompt`.
+- Tabel laporan berubah menjadi kartu pada layar mobile.
+- Nominal laporan tetap terbaca pada zoom 125% dan 150%.
 - Test frontend untuk cash basis dan scope snapshot tersedia.
 
 ## Gate otomatis
 
-Workflow `Phase 4 Readiness Validation` wajib lulus seluruh langkah berikut:
+Workflow `Phase 4 Readiness Validation` menjalankan seluruh pemeriksaan berikut.
 
 ### Backend
 
 ```text
 npm ci
+npm audit --omit=dev --audit-level=high
 npm run db:generate
 npm run db:migrate:deploy
 npm run typecheck
@@ -65,16 +70,19 @@ npm test
 
 ```text
 npm install --no-audit --no-fund
+npm audit --omit=dev --audit-level=high
 npm run typecheck
 npm test
 npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
 ```
 
-Artifact log backend dan frontend diunggah pada setiap run agar kegagalan dapat diaudit.
+Artifact log backend, frontend, Playwright report, screenshot, trace, dan video kegagalan diunggah pada setiap run agar hasil dapat diaudit.
 
-## Gate manual yang masih wajib
+## Browser dan visual regression
 
-Sebelum PR dinyatakan siap merge, lakukan regression test browser pada ukuran berikut:
+Playwright menjalankan dan menghasilkan screenshot untuk ukuran berikut:
 
 - 320 × 568
 - 390 × 844
@@ -84,27 +92,27 @@ Sebelum PR dinyatakan siap merge, lakukan regression test browser pada ukuran be
 - 1366 × 768
 - 1920 × 1080
 
-Periksa juga:
+Skenario yang lulus:
 
-- zoom browser 125% dan 150%;
-- navigasi keyboard tanpa mouse;
-- dialog saat keyboard mobile terbuka;
+- zoom browser ekuivalen 125% dan 150%;
+- login dan navigasi keyboard tanpa mouse;
+- dialog Bon saat tinggi viewport diperkecil untuk simulasi keyboard mobile;
 - high contrast dan reduced motion;
 - nominal Rupiah tidak terpotong;
-- tabel berubah menjadi kartu pada layar kecil;
-- dialog tidak tertutup bottom navigation;
-- tombol sensitif memiliki jarak aman dari tombol utama;
-- alur create, edit, settle, cancel payment, Void, bonus, dan report konsisten setelah berpindah halaman.
+- tabel laporan menjadi kartu pada layar kecil;
+- dialog tetap memiliki tombol aksi yang dapat dijangkau;
+- create, edit, settle, cancel payment, settle ulang, Void, bonus, dan report konsisten setelah berpindah halaman;
+- tidak terdapat horizontal page overflow pada viewport yang diuji.
 
-## Urutan merge
+Screenshot hasil run diperiksa setelah pengujian. Temuan layout laporan mobile dan pemotongan kolom total pada zoom 150% telah diperbaiki, lalu diuji ulang sampai workflow backend dan frontend lulus.
 
-1. Pastikan CI PR #2 hijau.
-2. Selesaikan manual browser/device regression.
-3. Ubah PR #2 dari draft menjadi ready dan merge ke `phase-4-audit-fix`.
-4. Jalankan ulang CI PR Phase 4 utama.
-5. Merge Phase 4 ke branch target proyek.
-6. Buat tag atau release marker `phase-4-complete`.
-7. Mulai Phase 5 dari commit hasil merge tersebut.
+## Urutan penyelesaian
+
+1. Tandai PR #2 sebagai ready dan merge ke `phase-4-audit-fix`.
+2. Jalankan ulang CI PR Phase 4 utama.
+3. Merge Phase 4 ke `phase-4-frontend`.
+4. Buat marker `phase-4-complete` pada commit hasil merge.
+5. Mulai Phase 5 dari commit tersebut.
 
 ## Batas pekerjaan Phase 5
 
