@@ -67,7 +67,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
-      - name: Run frontend tests
+      - name: Run frontend unit tests
         id: frontend_tests
         continue-on-error: true
         shell: bash
@@ -79,7 +79,24 @@ jobs:
         with:
           name: frontend-test-report
           path: frontend/frontend-test.log
-      - name: Enforce frontend test result
+      - name: Enforce frontend unit test result
         if: steps.frontend_tests.outcome == 'failure'
         run: exit 1
       - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run browser and visual regression
+        id: visual_tests
+        continue-on-error: true
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase5-visual-regression
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          if-no-files-found: warn
+      - name: Enforce browser regression result
+        if: steps.visual_tests.outcome == 'failure'
+        run: exit 1
