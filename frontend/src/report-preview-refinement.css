@@ -53,7 +53,6 @@
   text-overflow: ellipsis;
 }
 
-/* Five metrics use a balanced 3 + 2 layout instead of leaving one orphan card. */
 .acceptance-pdf-metric-grid.report-pdf-metric-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
@@ -79,7 +78,6 @@
   line-height: 1.55;
 }
 
-/* The report table is forced to the paper width. Long labels wrap instead of widening the page. */
 .acceptance-paper-preview {
   overflow: hidden;
 }
@@ -129,7 +127,6 @@
   word-break: normal;
 }
 
-/* All customers + shipping: 8 columns, exactly 100%. */
 .report-paper-table--with-customer.report-paper-table--with-shipping .report-col-date { width: 11%; }
 .report-paper-table--with-customer.report-paper-table--with-shipping .report-col-bon { width: 20%; }
 .report-paper-table--with-customer.report-paper-table--with-shipping .report-col-customer { width: 16%; }
@@ -139,7 +136,6 @@
 .report-paper-table--with-customer.report-paper-table--with-shipping .report-col-total { width: 11%; }
 .report-paper-table--with-customer.report-paper-table--with-shipping .report-col-result { width: 14%; }
 
-/* One customer + shipping: customer column is removed and money columns gain room. */
 .report-paper-table--without-customer.report-paper-table--with-shipping .report-col-date { width: 12%; }
 .report-paper-table--without-customer.report-paper-table--with-shipping .report-col-bon { width: 22%; }
 .report-paper-table--without-customer.report-paper-table--with-shipping .report-col-status { width: 9%; }
@@ -148,7 +144,6 @@
 .report-paper-table--without-customer.report-paper-table--with-shipping .report-col-total { width: 14%; }
 .report-paper-table--without-customer.report-paper-table--with-shipping .report-col-result { width: 20%; }
 
-/* Product scope without shipping. */
 .report-paper-table--with-customer.report-paper-table--without-shipping .report-col-date { width: 12%; }
 .report-paper-table--with-customer.report-paper-table--without-shipping .report-col-bon { width: 20%; }
 .report-paper-table--with-customer.report-paper-table--without-shipping .report-col-customer { width: 17%; }
@@ -184,14 +179,6 @@
   .acceptance-pdf-metric-grid.report-pdf-metric-grid > .acceptance-pdf-metric:last-child {
     grid-column: 1 / -1;
   }
-
-  .report-paper-table {
-    font-size: 0.64rem;
-  }
-
-  .report-paper-table th {
-    font-size: 0.6rem;
-  }
 }
 
 @media (max-width: 760px) {
@@ -220,15 +207,6 @@
   .acceptance-pdf-metric-grid.report-pdf-metric-grid > .acceptance-pdf-metric:last-child {
     grid-column: 1;
   }
-
-  .report-paper-table {
-    font-size: 0.6rem;
-  }
-
-  .report-paper-table th,
-  .report-paper-table td {
-    padding: 7px 4px;
-  }
 }
 
 @media print {
@@ -237,13 +215,108 @@
     margin: 10mm;
   }
 
-  .report-paper-meta,
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body > #root {
+    display: none !important;
+  }
+
+  body > .acceptance-pdf-backdrop,
+  body > .acceptance-pdf-backdrop * {
+    visibility: visible !important;
+  }
+
+  body > .acceptance-pdf-backdrop {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .acceptance-pdf-dialog {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .acceptance-pdf-header,
+  .acceptance-pdf-actions {
+    display: none !important;
+  }
+
+  .acceptance-pdf-body {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .acceptance-paper-preview {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .report-paper-meta {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
   .acceptance-pdf-metric-grid.report-pdf-metric-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    break-inside: avoid;
+  }
+
+  .acceptance-pdf-metric-grid.report-pdf-metric-grid > .acceptance-pdf-metric {
+    grid-column: span 2 !important;
+  }
+
+  .acceptance-pdf-metric-grid.report-pdf-metric-grid > .acceptance-pdf-metric:nth-last-child(-n + 2) {
+    grid-column: span 3 !important;
+  }
+
+  .acceptance-paper-brand,
+  .report-paper-title,
+  .report-paper-meta,
+  .report-paper-note {
     break-inside: avoid;
   }
 
   .report-paper-note {
-    break-inside: avoid;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -255,6 +328,10 @@
     break-inside: auto;
   }
 
+  .report-paper-table thead {
+    display: table-header-group;
+  }
+
   .report-paper-table th,
   .report-paper-table td {
     padding: 5pt 3pt;
@@ -263,5 +340,9 @@
   .report-paper-table tr {
     break-inside: avoid;
     break-after: auto;
+  }
+
+  .acceptance-paper-footer {
+    break-inside: avoid;
   }
 }
