@@ -33,6 +33,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run db:generate
       - run: npm run db:migrate:deploy
       - run: npm run typecheck
@@ -64,6 +65,7 @@ jobs:
         with:
           node-version: 24
       - run: npm install --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - name: Run frontend tests
         id: frontend_tests
