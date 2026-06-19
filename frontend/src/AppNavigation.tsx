@@ -1,4 +1,5 @@
-import { Bell, Home, LogOut, Menu, Plus, Settings, Users, WalletCards, X } from "lucide-react";
+import { useState } from "react";
+import { Bell, ChevronDown, Home, LogOut, Menu, Plus, Settings, Users, WalletCards, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavButton } from "./components";
 import { navigation, type PageKey } from "./data";
@@ -14,7 +15,7 @@ type AppSidebarProps = {
   onLogout: () => void;
 };
 
-export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onChangePage, onCloseMobile, onLogout }: AppSidebarProps) {
+export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onChangePage, onCloseMobile }: AppSidebarProps) {
   return <>
     <aside className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`} aria-label="Navigasi utama">
       <div className="brand-block">
@@ -31,12 +32,6 @@ export function AppSidebar({ activePage, selectedBonNumber, mobileMenuOpen, onCh
           return <button key={item.key} className={`nav-item ${active ? "nav-item--active" : ""}`} type="button" onClick={() => onChangePage(item.key)} aria-current={active ? "page" : undefined}><Icon size={22} /><span>{item.label}</span></button>;
         })}
       </nav>
-
-      <div className="sidebar-footer">
-        <span className="sidebar-footer-label">Akun & aplikasi</span>
-        <button className={`nav-item ${activePage === "settings" && !selectedBonNumber ? "nav-item--active" : ""}`} type="button" onClick={() => onChangePage("settings")}><Settings size={22} /><span>Pengaturan</span></button>
-        <button className="nav-item nav-item--danger" type="button" onClick={onLogout}><LogOut size={22} /><span>Keluar</span></button>
-      </div>
     </aside>
     {mobileMenuOpen && <button className="sidebar-backdrop" type="button" onClick={onCloseMobile} aria-label="Tutup menu" />}
   </>;
@@ -56,9 +51,18 @@ type AppTopbarProps = {
   onToggleNotifications: () => void;
   onGoReceivables: () => void;
   onGoBonus: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => void;
 };
 
-export function AppTopbar({ title, description, notificationOpen, notificationCount, receivableCount, eligibleBonusCount, onOpenMobile, onCreateBon, onToggleNotifications, onGoReceivables, onGoBonus }: AppTopbarProps) {
+export function AppTopbar({ title, description, notificationOpen, notificationCount, receivableCount, eligibleBonusCount, onOpenMobile, onCreateBon, onToggleNotifications, onGoReceivables, onGoBonus, onOpenSettings, onLogout }: AppTopbarProps) {
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const closeProfileAfter = (action: () => void) => {
+    setProfileOpen(false);
+    action();
+  };
+
   return <header className="topbar topbar--simple">
     <button className="icon-button mobile-menu-button" type="button" onClick={onOpenMobile} aria-label="Buka menu"><Menu size={25} /></button>
 
@@ -73,7 +77,30 @@ export function AppTopbar({ title, description, notificationOpen, notificationCo
         <button className="icon-button notification-button" type="button" aria-label={`${notificationCount} notifikasi`} aria-expanded={notificationOpen} onClick={onToggleNotifications}><Bell size={22} />{notificationCount > 0 && <span className="notification-count">{notificationCount}</span>}</button>
         {notificationOpen && <div className="notification-panel"><strong>Perlu perhatian</strong><button type="button" onClick={onGoReceivables}><WalletCards size={20} /><span><strong>{receivableCount} Bon Piutang</strong><small>Periksa jadwal penagihan.</small></span></button><button type="button" onClick={onGoBonus}><Plus size={20} /><span><strong>{eligibleBonusCount} pelanggan eligible bonus</strong><small>Buat Bonus Bon terpisah.</small></span></button></div>}
       </div>
-      <div className="user-chip user-chip--compact" aria-label="Pengguna aktif: Admin HL" title="Admin HL"><div className="user-avatar">AD</div></div>
+
+      <div
+        className={`profile-menu ${profileOpen ? "is-open" : ""}`}
+        onMouseEnter={() => setProfileOpen(true)}
+        onMouseLeave={() => setProfileOpen(false)}
+        onFocus={() => setProfileOpen(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setProfileOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setProfileOpen(false);
+        }}
+      >
+        <button className="profile-trigger" type="button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
+          <span className="user-avatar">AD</span>
+          <span className="profile-copy"><strong>Admin HL</strong><small>Pengguna utama</small></span>
+          <ChevronDown size={18} className="profile-chevron" />
+        </button>
+        <div className="profile-dropdown" role="menu" aria-label="Menu profil">
+          <div className="profile-dropdown-heading"><span className="user-avatar">AD</span><span><strong>Admin HL</strong><small>Pengguna utama</small></span></div>
+          <button type="button" role="menuitem" onClick={() => closeProfileAfter(onOpenSettings)}><Settings size={20} /><span><strong>Pengaturan</strong><small>Tampilan dan preferensi aplikasi</small></span></button>
+          <button className="profile-dropdown-danger" type="button" role="menuitem" onClick={() => closeProfileAfter(onLogout)}><LogOut size={20} /><span><strong>Keluar</strong><small>Akhiri sesi aplikasi</small></span></button>
+        </div>
+      </div>
     </div>
   </header>;
 }
