@@ -10,7 +10,8 @@ export class BootstrapService {
         where: { deletedAt: null },
         include: {
           discountTiers: { orderBy: [{ productType: "asc" }, { sequence: "asc" }] },
-          thresholdHistories: { orderBy: { effectiveFrom: "asc" } }
+          thresholdHistories: { orderBy: { effectiveFrom: "asc" } },
+          bonusLedgers: { orderBy: { createdAt: "desc" } }
         },
         orderBy: [{ name: "asc" }, { createdAt: "asc" }]
       }),
@@ -28,12 +29,16 @@ export class BootstrapService {
       })
     ]);
 
-    const bonus = new BonusService(this.db);
+    const availabilityService = new BonusService(this.db);
     const customersWithAvailability = await Promise.all(
-      customers.map(async (customer) => ({
-        ...customer,
-        bonusAvailability: await bonus.getAvailability(customer.id)
-      }))
+      customers.map(async (customer) => {
+        const { bonusLedgers, ...profile } = customer;
+        return {
+          ...profile,
+          bonusAvailability: await availabilityService.getAvailability(customer.id),
+          bonusHistory: bonusLedgers
+        };
+      })
     );
 
     return {
