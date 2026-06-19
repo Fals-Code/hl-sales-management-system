@@ -11,6 +11,13 @@ async function waitForApp(page: Page) {
   await expect(page.locator("#main-content")).toBeVisible();
 }
 
+async function readGeneratedBonNumber(page: Page, prefix: "BON" | "BONUS") {
+  const input = page.getByLabel("Nomor Bon *");
+  const pattern = prefix === "BONUS" ? /^BONUS-\d{8}-\d{3}$/ : /^BON-\d{8}-\d{3}$/;
+  await expect(input).toHaveValue(pattern);
+  return input.inputValue();
+}
+
 async function finishBonSuccess(page: Page, bonNumber: string, downloadPdf = false) {
   await expect(page.getByRole("heading", { name: bonNumber })).toBeVisible();
   if (downloadPdf) {
@@ -35,7 +42,7 @@ async function createNormalBon(page: Page, description: string) {
   await waitForApp(page);
   await page.getByRole("button", { name: /Buat Bon/ }).first().click();
   await expect(page).toHaveURL(/#\/bons\/new/);
-  const bonNumber = await page.getByLabel("Nomor Bon *").inputValue();
+  const bonNumber = await readGeneratedBonNumber(page, "BON");
   await page.getByLabel("Deskripsi").fill(description);
   await addFirstAvailableProduct(page);
   await page.getByRole("button", { name: "Simpan Bon" }).click();
@@ -166,8 +173,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await expect(page.getByText("1 unit", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Buat Bonus Bon" }).click();
   await expect(page).toHaveURL(/#\/bons\/new/);
-  const bonusNumber = await page.getByLabel("Nomor Bon *").inputValue();
-  expect(bonusNumber).toMatch(/^BONUS-/);
+  const bonusNumber = await readGeneratedBonNumber(page, "BONUS");
   await addFirstAvailableProduct(page);
   await page.getByRole("button", { name: "Simpan Bon" }).click();
   await finishBonSuccess(page, bonusNumber);
