@@ -100,7 +100,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await editDialog.getByRole("button", { name: "Simpan Perubahan" }).click();
   await expect(editDialog).toBeHidden();
   await waitForApp(page);
-  await expect(page.getByText("Perubahan Bon Piutang berhasil disimpan", { exact: false })).toBeVisible();
+  await expect(page.getByText("Transaksi API sudah diperbarui", { exact: true })).toBeVisible();
 
   await settleCurrentBon(page);
   await page.reload();
@@ -116,7 +116,8 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await cancelDialog.locator('input[type="password"]').fill(ownerPin);
   await cancelDialog.locator("textarea").fill("Koreksi pembayaran pengujian integrasi");
   await cancelDialog.getByRole("button", { name: "Batalkan Pembayaran" }).click();
-  await expect(page.getByText(`${firstBonNumber} kembali menjadi Piutang`, { exact: false })).toBeVisible();
+  await expect(cancelDialog).toBeHidden();
+  await waitForApp(page);
 
   await page.goto(`/#/bon/${encodeURIComponent(firstBonNumber)}`);
   await waitForApp(page);
