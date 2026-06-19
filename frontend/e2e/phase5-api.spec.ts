@@ -4,6 +4,8 @@ const username = process.env.PHASE5_TEST_USERNAME ?? "owner";
 const password = process.env.PHASE5_TEST_PASSWORD ?? "phase5-test-password";
 const ownerPin = process.env.OWNER_PIN ?? "246810";
 
+test.describe.configure({ retries: 0 });
+
 async function waitForApp(page: Page) {
   await expect(page.locator(".app-shell")).toBeVisible();
   await expect(page.locator("#main-content")).toBeVisible();
@@ -180,7 +182,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
     const response = await fetch("http://127.0.0.1:3000/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
-      headers: { Accept: "application/json", "Content-Type": "application/json" }
+      headers: { Accept: "application/json" }
     });
     return response.status;
   });
