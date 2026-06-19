@@ -10,7 +10,7 @@ const bonItemSchema = z.object({ productId: z.string().min(1), quantity: quantit
 const bonNumberSchema = z.string().trim().regex(BON_NUMBER_PATTERN, "Format Nomor Bon tidak valid.");
 const saveBonSchema = z
   .object({
-    bonNumber: bonNumberSchema,
+    bonNumber: bonNumberSchema.optional(),
     customerId: z.string().min(1),
     items: z.array(bonItemSchema).min(1),
     shippingCost: moneySchema.optional(),
@@ -88,7 +88,7 @@ export async function registerBonRoutes(app: FastifyInstance, ctx: ApiContext) {
 function toSaveBonInput(body: z.infer<typeof saveBonSchema>, userId: string) {
   return {
     ...body,
-    bonNumber: normalizeBonNumber(body.bonNumber),
+    bonNumber: body.bonNumber ? normalizeBonNumber(body.bonNumber) : undefined,
     bonDate: body.bonDate ? new Date(body.bonDate) : undefined,
     userId
   };
