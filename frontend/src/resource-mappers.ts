@@ -1,11 +1,29 @@
 import type {
   ApiBonDto,
   ApiBonItemDto,
+  ApiBonusLedgerDto,
   ApiCustomerDto,
   ApiProductDto,
   HydrationPayload
 } from "./hydration-api";
 import type { StoredBon, StoredBonLine, StoredCustomer, StoredProduct } from "./store";
+
+export type StoredBonusLedger = {
+  id: string;
+  mutationType: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  thresholdSnapshot?: number;
+  revenueSnapshot?: number;
+  reversalOfId?: string;
+  bonId?: string;
+  paymentId?: string;
+  reason?: string;
+  createdAt: string;
+};
+
+export type StoredCustomerWithHistory = StoredCustomer & { bonusHistory: StoredBonusLedger[] };
 
 export type HydratedState = {
   customers: StoredCustomer[];
@@ -42,7 +60,7 @@ export function mapHydrationPayload(payload: HydrationPayload): HydratedState {
   };
 }
 
-export function mapCustomer(customer: ApiCustomerDto): StoredCustomer {
+export function mapCustomer(customer: ApiCustomerDto): StoredCustomerWithHistory {
   const threshold = customer.bonusThreshold ?? 0;
   const totalSettledRevenue = customer.bonusAvailability?.totalSettledRevenue ?? 0;
   const availableUnits = customer.bonusAvailability?.availableUnits ?? 0;
@@ -65,6 +83,7 @@ export function mapCustomer(customer: ApiCustomerDto): StoredCustomer {
       newAmount: history.newValue,
       note: history.reason ?? "Perubahan threshold bonus"
     })),
+    bonusHistory: (customer.bonusHistory ?? []).map(mapBonusLedger),
     active: !customer.deletedAt
   };
 }
@@ -117,7 +136,7 @@ function mapBonLine(item: ApiBonItemDto, productIds: Map<string | undefined, str
   };
 }
 
-function mapHistoricalCustomer(bon: ApiBonDto): StoredCustomer {
+function mapHistoricalCustomer(bon: ApiBonDto): StoredCustomerWithHistory {
   return {
     backendId: bon.customerId,
     code: bon.customer.code?.trim() || displayId("CUS", bon.customerId),
@@ -130,6 +149,7 @@ function mapHistoricalCustomer(bon: ApiBonDto): StoredCustomer {
     accumulatedPaidOmzet: 0,
     bonusesGranted: 0,
     thresholdHistory: [],
+    bonusHistory: [],
     active: false
   };
 }
@@ -144,6 +164,23 @@ function mapHistoricalProduct(item: ApiBonItemDto, backendProductId: string): St
     costPrice: item.costPriceSnapshot,
     basePrice: item.basePriceSnapshot,
     active: false
+  };
+}
+
+function mapBonusLedger(entry: ApiBonusLedgerDto): StoredBonusLedger {
+  return {
+    id: entry.id,
+    mutationType: entry.mutationType,
+    amount: entry.amount,
+    balanceBefore: entry.balanceBefore,
+    balanceAfter: entry.balanceAfter,
+    thresholdSnapshot: entry.thresholdSnapshot ?? undefined,
+    revenueSnapshot: entry.revenueSnapshot ?? undefined,
+    reversalOfId: entry.reversalOfId ?? undefined,
+    bonId: entry.bonId ?? undefined,
+    paymentId: entry.paymentId ?? undefined,
+    reason: entry.reason ?? undefined,
+    createdAt: entry.createdAt
   };
 }
 
