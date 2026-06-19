@@ -88,6 +88,7 @@ model Product {
   sku       String?     @unique
   name      String
   type      String
+  stock     Int         @default(0)
   costPrice BigInt
   basePrice BigInt
   createdAt DateTime    @default(now())
@@ -110,6 +111,7 @@ model Bon {
   settledAt         DateTime?
   voidedAt          DateTime?
   deletedAt         DateTime?
+  inventoryAppliedAt DateTime?
   shippingCost      BigInt    @default(0)
   description       String?
   totalBeforeDiscount BigInt  @default(0)
@@ -133,6 +135,7 @@ model Bon {
   @@index([bonDate])
   @@index([settledAt])
   @@index([deletedAt])
+  @@index([inventoryAppliedAt])
 }
 
 model BonItem {
