@@ -2,7 +2,6 @@ import {
   apiRequest,
   type ApiClientError
 } from "./api-client";
-import { collectPages } from "./pagination";
 
 export type ApiProductType = "LM" | "BR";
 export type ApiDiscountTierDto = { productType: ApiProductType; sequence: number; percentBps: number };
@@ -86,24 +85,7 @@ export type HydrationPayload = {
 };
 
 export const hydrationApi = {
-  load: async (): Promise<HydrationPayload> => {
-    const [customerRows, products, bons] = await Promise.all([
-      collectPages<ApiCustomerDto>("/api/v1/customers?sortBy=name&sortOrder=asc"),
-      collectPages<ApiProductDto>("/api/v1/products?sortBy=name&sortOrder=asc"),
-      collectPages<ApiBonDto>("/api/v1/bons?sortBy=bonDate&sortOrder=desc")
-    ]);
-
-    const customers = await Promise.all(customerRows.map(async (customer) => {
-      const [detail, bonusAvailability, bonusHistory] = await Promise.all([
-        apiRequest<ApiCustomerDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}`),
-        apiRequest<ApiBonusAvailabilityDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus`),
-        apiRequest<ApiBonusLedgerDto[]>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus-history`)
-      ]);
-      return { ...customer, ...detail, bonusAvailability, bonusHistory };
-    }));
-
-    return { generatedAt: new Date().toISOString(), customers, products, bons };
-  }
+  load: () => apiRequest<HydrationPayload>("/api/v1/bootstrap")
 };
 
 export function hydrationErrorMessage(error: unknown) {
