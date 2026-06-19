@@ -1,16 +1,17 @@
 import { AlertTriangle, ArrowLeft, CheckCircle2, Download, HandCoins, Pencil, ReceiptText, ShieldAlert, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { calculateBon, currentIsoDate, toDisplayDate, type AcceptanceBonStatus } from "./acceptance-data";
+import { currentIsoDate, toDisplayDate, type AcceptanceBonStatus } from "./acceptance-data";
 import { bonApi, createApiFileObjectUrl, downloadApiFile, useApi } from "./api-client";
 import { AcceptanceBonEditDialog } from "./AcceptanceBonEditDialog";
 import { AcceptancePdfPreviewDialog } from "./AcceptancePdfPreviewDialog";
 import { formatCurrency } from "./data";
 import { SingleBonSettlementDialog } from "./SingleBonSettlementDialog";
 import { useAppStore } from "./store";
+import { calculateStoredBon } from "./stored-bon-calculation";
 import { settlementResourceApi, transactionResourceApi } from "./write-resources";
 
 export function AcceptanceBonDetailPageV2({ bonNumber, onBack }: { bonNumber: string; onBack: () => void }) {
-  const { customers, bons, updateBonStatus, softDeleteBon, refreshFromApi } = useAppStore();
+  const { customers, products, bons, updateBonStatus, softDeleteBon, refreshFromApi } = useAppStore();
   const sourceBon = bons.find((bon) => bon.number === bonNumber && !bon.deletedAt);
   const [paymentDate, setPaymentDate] = useState(sourceBon?.paymentDate ?? currentIsoDate());
   const [settlementOpen, setSettlementOpen] = useState(false);
@@ -64,7 +65,7 @@ export function AcceptanceBonDetailPageV2({ bonNumber, onBack }: { bonNumber: st
 
   if (!sourceBon) return <section className="acceptance-empty"><ReceiptText size={38} /><h3>Bon tidak ditemukan</h3><p>Data mungkin telah dinonaktifkan atau Nomor Bon tidak valid.</p><button className="button button--primary" type="button" onClick={onBack}>Kembali</button></section>;
 
-  const calculation = calculateBon(sourceBon);
+  const calculation = calculateStoredBon(sourceBon, customers, products);
   const status = sourceBon.status;
 
   const confirmSettlement = async () => {
