@@ -1,6 +1,6 @@
 import { BarChart3, CircleDollarSign, HandCoins, Home, ReceiptText, ShoppingBag, Users, WalletCards, Gift } from "lucide-react";
 
-export type PageKey = "dashboard" | "customers" | "products" | "bons" | "receivables" | "settlements" | "bonus" | "reports" | "settings";
+export type PageKey = "dashboard" | "customers" | "products" | "bons" | "create-bon" | "receivables" | "settlements" | "bonus" | "reports" | "settings";
 export type BonStatus = "Belum Lunas" | "Lunas" | "Dibatalkan";
 
 export type BonRow = {
