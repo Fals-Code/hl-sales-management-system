@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AcceptanceBonDialog } from "./AcceptanceBonDialog";
-import { acceptanceBons, bonusesAvailable, customerProfiles } from "./acceptance-data";
+import { bonusesAvailable } from "./acceptance-data";
 import { AppContent } from "./AppContent";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppMobileNav, AppSidebar, AppTopbar } from "./AppNavigation";
@@ -9,6 +9,7 @@ import { navigateToBon, navigateToPage, readHashRoute, type HashRoute } from "./
 import { LoginPage } from "./LoginPage";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { PageLoadingState, RouteFallbackState } from "./PageStates";
+import { useAppStore } from "./store";
 
 const pageDescriptions: Record<PageKey, string> = {
   dashboard: "Ringkasan cash basis, Piutang, dan tindakan penting hari ini",
@@ -30,6 +31,7 @@ const readBooleanSetting = (key: string, fallback: boolean) => {
 };
 
 export default function AppV2() {
+  const { bons, customers } = useAppStore();
   const initialRoute = readHashRoute();
   const [signedIn, setSignedIn] = useState(() => window.localStorage.getItem("hl-demo-session") === "active");
   const [route, setRoute] = useState<HashRoute>(initialRoute);
@@ -89,8 +91,8 @@ export default function AppV2() {
     return () => window.removeEventListener("keydown", closeTransientUi);
   }, []);
 
-  const receivableCount = acceptanceBons.filter((bon) => bon.status === "Piutang" && !bon.isBonus).length;
-  const eligibleBonusCount = customerProfiles.filter((customer) => bonusesAvailable(customer) > 0).length;
+  const receivableCount = bons.filter((bon) => bon.status === "Piutang" && !bon.isBonus).length;
+  const eligibleBonusCount = customers.filter((customer) => bonusesAvailable(customer) > 0).length;
   const pageTitle = route.bonNumber ? "Detail Bon" : navigation.find((item) => item.key === route.page)?.label ?? "Dashboard";
   const pageDescription = route.bonNumber ? route.bonNumber : pageDescriptions[route.page];
 
