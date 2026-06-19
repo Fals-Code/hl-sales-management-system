@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateScoped, reportDateFor } from "./store-reports";
+import { calculateScoped, reportDateFor } from "./reporting-logic";
 import type { StoredBon, StoredCustomer, StoredProduct } from "./store";
 
 const customer: StoredCustomer = {
