@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  verify:
+  backend:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -50,8 +50,21 @@ jobs:
       - name: Verify backend types
         run: npm run build
 
-      - name: Run backend tests
-        run: npm test
+      - name: Run backend tests sequentially
+        run: npm test -- --maxWorkers=1 --no-file-parallelism
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install frontend dependencies
         working-directory: frontend
