@@ -16,7 +16,9 @@ type ReportPreviewProps = {
 
 export function ReportPreview({ open, periodLabel, customerName = "Semua pelanggan", scope = "overall", rows, onClose, onPrint }: ReportPreviewProps) {
   const scopeLabel = scope === "overall" ? "Keseluruhan Produk" : `Produk ${scope}`;
-  const reportTitle = customerName === "Semua pelanggan"
+  const showCustomer = customerName === "Semua pelanggan";
+  const showShipping = scope === "overall";
+  const reportTitle = showCustomer
     ? scope === "overall"
       ? "Rekap Penjualan Keseluruhan"
       : `Rekap Penjualan Produk ${scope}`
@@ -32,7 +34,7 @@ export function ReportPreview({ open, periodLabel, customerName = "Semua pelangg
     const omzet = scopedLines.reduce((sum, line) => sum + line.lineOmzet, 0);
     const profit = scopedLines.reduce((sum, line) => sum + line.lineProfit, 0);
     const bonusCost = scopedLines.reduce((sum, line) => sum + line.lineBonusCost, 0);
-    const shipping = scope === "overall" ? bon.shipping : 0;
+    const shipping = showShipping ? bon.shipping : 0;
     const amount = bon.isBonus ? 0 : omzet + shipping;
 
     return { bon, totals, omzet, profit, bonusCost, shipping, amount };
@@ -48,6 +50,12 @@ export function ReportPreview({ open, periodLabel, customerName = "Semua pelangg
   const totalOutstanding = unpaidRows.reduce((sum, row) => sum + row.amount, 0);
   const bonusCost = bonusRows.reduce((sum, row) => sum + row.bonusCost, 0);
   const subtitle = `${customerName} · ${periodLabel} · ${scopeLabel}`;
+  const tableClassName = [
+    "acceptance-paper-table",
+    "report-paper-table",
+    showCustomer ? "report-paper-table--with-customer" : "report-paper-table--without-customer",
+    showShipping ? "report-paper-table--with-shipping" : "report-paper-table--without-shipping"
+  ].join(" ");
 
   const printWithDocumentTitle = () => {
     const previousTitle = document.title;
@@ -87,32 +95,42 @@ export function ReportPreview({ open, periodLabel, customerName = "Semua pelangg
           : `Laporan ini hanya menghitung baris produk ${scope}. Ongkir tidak dialokasikan ke cakupan produk dan tidak dimasukkan ke nilai ${scope}.`}
       </div>
 
-      <table className="acceptance-paper-table report-paper-table">
+      <table className={tableClassName}>
+        <colgroup>
+          <col className="report-col-date" />
+          <col className="report-col-bon" />
+          {showCustomer && <col className="report-col-customer" />}
+          <col className="report-col-status" />
+          <col className="report-col-omzet" />
+          {showShipping && <col className="report-col-shipping" />}
+          <col className="report-col-total" />
+          <col className="report-col-result" />
+        </colgroup>
         <thead>
           <tr>
-            <th>Tanggal</th>
-            <th>Nomor Bon</th>
-            {customerName === "Semua pelanggan" && <th>Pelanggan</th>}
-            <th>Status</th>
-            <th>Omzet{scope === "overall" ? "" : ` ${scope}`}</th>
-            {scope === "overall" && <th>Ongkir</th>}
-            <th>{scope === "overall" ? "Total" : `Nilai ${scope}`}</th>
-            <th>{scope === "overall" ? "Laba/Biaya" : `Laba/Biaya ${scope}`}</th>
+            <th className="report-cell-date">Tanggal</th>
+            <th className="report-cell-bon">Nomor Bon</th>
+            {showCustomer && <th className="report-cell-customer">Pelanggan</th>}
+            <th className="report-cell-status">Status</th>
+            <th className="report-cell-money">Omzet{scope === "overall" ? "" : ` ${scope}`}</th>
+            {showShipping && <th className="report-cell-money">Ongkir</th>}
+            <th className="report-cell-money">{scope === "overall" ? "Total" : `Nilai ${scope}`}</th>
+            <th className="report-cell-money">{scope === "overall" ? "Laba/Biaya" : `Laba/Biaya ${scope}`}</th>
           </tr>
         </thead>
         <tbody>
           {reportRows.length === 0 ? (
-            <tr><td colSpan={customerName === "Semua pelanggan" ? (scope === "overall" ? 8 : 7) : (scope === "overall" ? 7 : 6)} className="report-paper-empty">Tidak ada transaksi sesuai filter yang dipilih.</td></tr>
+            <tr><td colSpan={showCustomer ? (showShipping ? 8 : 7) : (showShipping ? 7 : 6)} className="report-paper-empty">Tidak ada transaksi sesuai filter yang dipilih.</td></tr>
           ) : reportRows.map(({ bon, totals, omzet, profit, bonusCost: rowBonusCost, shipping, amount }) => (
             <tr key={bon.number}>
-              <td>{toDisplayDate(bon.date)}</td>
-              <td>{bon.number}</td>
-              {customerName === "Semua pelanggan" && <td>{totals.customer.name}</td>}
-              <td>{bon.status}</td>
-              <td>{formatCurrency(omzet)}</td>
-              {scope === "overall" && <td>{formatCurrency(shipping)}</td>}
-              <td>{formatCurrency(amount)}</td>
-              <td>{bon.isBonus ? `Biaya ${formatCurrency(rowBonusCost)}` : formatCurrency(profit)}</td>
+              <td className="report-cell-date">{toDisplayDate(bon.date)}</td>
+              <td className="report-cell-bon">{bon.number}</td>
+              {showCustomer && <td className="report-cell-customer">{totals.customer.name}</td>}
+              <td className="report-cell-status">{bon.status}</td>
+              <td className="report-cell-money">{formatCurrency(omzet)}</td>
+              {showShipping && <td className="report-cell-money">{formatCurrency(shipping)}</td>}
+              <td className="report-cell-money">{formatCurrency(amount)}</td>
+              <td className="report-cell-money report-cell-result">{bon.isBonus ? `Biaya ${formatCurrency(rowBonusCost)}` : formatCurrency(profit)}</td>
             </tr>
           ))}
         </tbody>
