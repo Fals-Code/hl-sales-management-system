@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderBonPdf } from "../src/services/pdfBonService";
 
 describe("Bon PDF", () => {
-  it("renders a customer-safe A4 Bon document", async () => {
+  it("renders a customer-safe one-page A4 Bon document for a compact transaction", async () => {
     const buffer = await renderBonPdf({
       bonNumber: "BON-20260620-001",
       bonDate: "2026-06-20T00:00:00.000Z",
@@ -32,5 +32,10 @@ describe("Bon PDF", () => {
 
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     expect(buffer.byteLength).toBeGreaterThan(1_000);
+    expect(countPdfPages(buffer)).toBe(1);
   });
 });
+
+function countPdfPages(buffer: Buffer) {
+  return buffer.toString("latin1").match(/\/Type\s*\/Page\b/g)?.length ?? 0;
+}
