@@ -17,6 +17,7 @@ model User {
   sessions       Session[]
   authorizations AuthorizationRecord[]
   bonusThresholdHistories BonusThresholdHistory[] @relation("BonusThresholdChangedBy")
+  notifications  Notification[]
 }
 
 model Session {
@@ -259,4 +260,28 @@ model VoidRecord {
   voidedAt        DateTime @default(now())
 
   @@index([voidedAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey    String
+  category    String
+  severity    String
+  title       String
+  message     String
+  targetUrl   String?
+  entityType  String?
+  entityId    String   @default("global")
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  dismissedAt DateTime?
+  expiresAt   DateTime?
+
+  @@unique([userId, eventKey, entityId])
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, dismissedAt])
+  @@index([expiresAt])
 }
