@@ -117,10 +117,10 @@ export class BonusService {
 
   async recordEarnedForSettlement(input: { customerId: string; paymentId: string; reason?: string }) {
     const availability = await this.getAvailability(input.customerId);
-    const thresholdStart = await this.getCurrentThresholdStart(input.customerId);
-    const currentPeriodRevenue = await this.getActiveSettledRevenue(input.customerId, thresholdStart);
+    const thresholdContext = await this.getCurrentThresholdContext(input.customerId);
+    const currentPeriodRevenue = thresholdContext.initialCarryover + await this.getActiveSettledRevenue(input.customerId, thresholdContext.effectiveFrom);
     const earnedInCurrentPeriod = availability.threshold > 0 ? Math.floor(currentPeriodRevenue / availability.threshold) : 0;
-    const earnedNetInCurrentPeriod = await this.getNetEarnedLedgerUnits(input.customerId, thresholdStart);
+    const earnedNetInCurrentPeriod = await this.getNetEarnedLedgerUnits(input.customerId, thresholdContext.effectiveFrom);
     const delta = earnedInCurrentPeriod - earnedNetInCurrentPeriod;
     await this.db.customer.update({
       where: { id: input.customerId },
@@ -166,10 +166,10 @@ export class BonusService {
 
   async reconcileEarnedAfterVoid(input: { customerId: string; bonId: string; paymentId?: string; reason: string }) {
     const availability = await this.getAvailability(input.customerId);
-    const thresholdStart = await this.getCurrentThresholdStart(input.customerId);
-    const currentPeriodRevenue = await this.getActiveSettledRevenue(input.customerId, thresholdStart);
+    const thresholdContext = await this.getCurrentThresholdContext(input.customerId);
+    const currentPeriodRevenue = thresholdContext.initialCarryover + await this.getActiveSettledRevenue(input.customerId, thresholdContext.effectiveFrom);
     const earnedInCurrentPeriod = availability.threshold > 0 ? Math.floor(currentPeriodRevenue / availability.threshold) : 0;
-    const earnedNet = await this.getNetEarnedLedgerUnits(input.customerId, thresholdStart);
+    const earnedNet = await this.getNetEarnedLedgerUnits(input.customerId, thresholdContext.effectiveFrom);
     const excess = earnedNet - earnedInCurrentPeriod;
     await this.recalculateCurrentCarryover(input.customerId);
     if (excess <= 0) return null;
@@ -219,18 +219,21 @@ export class BonusService {
     }, 0);
   }
 
-  private async getCurrentThresholdStart(customerId: string) {
+  private async getCurrentThresholdContext(customerId: string) {
     const latest = await this.db.bonusThresholdHistory.findFirst({
       where: { customerId, effectiveUntil: null },
       orderBy: { effectiveFrom: "desc" }
     });
-    return latest?.effectiveFrom;
+    return {
+      effectiveFrom: latest?.effectiveFrom,
+      initialCarryover: toSafeMoneyNumber(latest?.carryoverRevenue, "thresholdCarryover")
+    };
   }
 
   private async recalculateCurrentCarryover(customerId: string) {
     const availability = await this.getAvailability(customerId);
-    const thresholdStart = await this.getCurrentThresholdStart(customerId);
-    const currentPeriodRevenue = await this.getActiveSettledRevenue(customerId, thresholdStart);
+    const thresholdContext = await this.getCurrentThresholdContext(customerId);
+    const currentPeriodRevenue = thresholdContext.initialCarryover + await this.getActiveSettledRevenue(customerId, thresholdContext.effectiveFrom);
     await this.db.customer.update({
       where: { id: customerId },
       data: {

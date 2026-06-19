@@ -20,23 +20,22 @@ export class ReportingService {
   constructor(private readonly db: PrismaClient) {}
 
   async overall(filters: ReportFilters = {}) {
-    const piutangWhere = buildBonWhere({ ...filters, status: "PIUTANG" }, "bon");
     const voidWhere = buildBonWhere({ ...filters, status: "VOID" }, "bon");
 
-    const [piutang, activeAllocations, historicalPayments, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
-      this.db.bon.aggregate({ where: piutangWhere, _sum: { totalAmount: true } }),
+    const [totalPiutang, activeAllocations, historicalPayments, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
+      this.getPiutangTotal(filters),
       this.db.paymentBon.findMany({ where: buildPaymentBonWhere(filters), include: { bon: { include: { items: true } }, payment: true } }),
       this.db.payment.aggregate({ where: buildPaymentWhere(filters, true), _sum: { historicalPaymentAmount: true } }),
       this.db.bon.count({ where: voidWhere }),
-      this.db.payment.count({ where: { ...buildPaymentWhere(filters, false), canceledAt: { not: null } } }),
+      this.db.payment.count({ where: { ...buildPaymentWhere(filters, true), canceledAt: { not: null } } }),
       this.db.bon.count({ where: { ...buildBonWhere(filters, "bon"), hasNegativeProfit: true, deletedAt: null } }),
-      this.getNetUsedBonusUnits(filters.customerId)
+      this.getNetUsedBonusUnits(filters)
     ]);
 
     const paid = summarizeAllocations(activeAllocations, filters.productType);
     return {
-      totalPiutang: toSafeMoneyNumber(piutang._sum.totalAmount, "totalPiutang"),
-      historicalPaymentAmount: filters.productType ? 0 : toSafeMoneyNumber(historicalPayments._sum.historicalPaymentAmount, "historicalPaymentAmount"),
+      totalPiutang,
+      historicalPaymentAmount: filters.productType ? paid.totalAmount : toSafeMoneyNumber(historicalPayments._sum.historicalPaymentAmount, "historicalPaymentAmount"),
       activePaymentAmount: paid.totalAmount,
       totalPaid: paid.totalAmount,
       totalRevenue: paid.revenueLm + paid.revenueBr,
@@ -54,9 +53,9 @@ export class ReportingService {
 
   async byCustomer(customerId: string, filters: ReportFilters = {}) {
     const customerFilters = { ...filters, customerId };
-    const [totalBon, piutang, activeAllocations, negativeCount, bonus] = await Promise.all([
+    const [totalBon, totalPiutang, activeAllocations, negativeCount, bonus] = await Promise.all([
       this.db.bon.count({ where: buildBonWhere(customerFilters, "bon") }),
-      this.db.bon.aggregate({ where: buildBonWhere({ ...customerFilters, status: "PIUTANG" }, "bon"), _sum: { totalAmount: true } }),
+      this.getPiutangTotal(customerFilters),
       this.db.paymentBon.findMany({ where: buildPaymentBonWhere(customerFilters), include: { bon: { include: { items: true } }, payment: true } }),
       this.db.bon.count({ where: { ...buildBonWhere(customerFilters, "bon"), hasNegativeProfit: true } }),
       new BonusService(this.db).getAvailability(customerId)
@@ -65,7 +64,7 @@ export class ReportingService {
     return {
       customerId,
       totalBon,
-      totalPiutang: toSafeMoneyNumber(piutang._sum.totalAmount, "totalPiutang"),
+      totalPiutang,
       totalPaid: paid.totalAmount,
       totalRevenue: paid.revenueLm + paid.revenueBr,
       totalRevenueLm: paid.revenueLm,
@@ -139,9 +138,32 @@ export class ReportingService {
     });
   }
 
-  private async getNetUsedBonusUnits(customerId?: string) {
+  private async getPiutangTotal(filters: ReportFilters) {
+    const where = buildBonWhere({ ...filters, status: "PIUTANG" }, "bon");
+    if (!filters.productType) {
+      const result = await this.db.bon.aggregate({ where, _sum: { totalAmount: true } });
+      return toSafeMoneyNumber(result._sum.totalAmount, "totalPiutang");
+    }
+    const result = await this.db.bonItem.aggregate({
+      where: {
+        isBonus: false,
+        productTypeSnapshot: filters.productType,
+        bon: where
+      },
+      _sum: { subtotal: true }
+    });
+    return toSafeMoneyNumber(result._sum.subtotal, "totalPiutangScoped");
+  }
+
+  private async getNetUsedBonusUnits(filters: ReportFilters) {
+    const createdAt = buildDateRange(filters.paidAtFrom ?? filters.bonDateFrom, filters.paidAtTo ?? filters.bonDateTo)
+      ?? (filters.month && filters.year ? monthRange(filters.month, filters.year) : undefined);
     const ledgers = await this.db.bonusLedger.findMany({
-      where: { customerId, mutationType: { in: ["USED", "REVERSED"] } }
+      where: {
+        ...(filters.customerId ? { customerId: filters.customerId } : {}),
+        mutationType: { in: ["USED", "REVERSED"] },
+        ...(createdAt ? { createdAt } : {})
+      }
     });
     const usedIds = new Set(ledgers.filter((ledger) => ledger.mutationType === "USED").map((ledger) => ledger.id));
     return ledgers.reduce((sum, ledger) => {

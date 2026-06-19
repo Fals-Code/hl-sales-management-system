@@ -1,10 +1,10 @@
-name: Phase 4 Audit Validation
+name: Phase 4 Readiness Validation
 
 on:
   push:
-    branches: [phase-4-audit-fix]
+    branches: [phase-4-audit-fix, phase-4-readiness-fix]
   pull_request:
-    branches: [phase-4-frontend]
+    branches: [phase-4-frontend, phase-4-audit-fix]
 
 jobs:
   backend:
@@ -33,18 +33,23 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run db:generate
       - run: npm run db:migrate:deploy
       - run: npm run typecheck
+      - run: npm run lint
       - name: Run backend tests
         id: backend_tests
         continue-on-error: true
-        run: npm test -- --reporter=json --outputFile=vitest-report.json
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee backend-test.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-test-report
-          path: vitest-report.json
+          path: backend-test.log
       - name: Enforce backend test result
         if: steps.backend_tests.outcome == 'failure'
         run: exit 1
@@ -59,6 +64,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm install
+      - run: npm install --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
+      - name: Run frontend unit tests
+        id: frontend_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee frontend-test.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-report
+          path: frontend/frontend-test.log
+      - name: Enforce frontend unit test result
+        if: steps.frontend_tests.outcome == 'failure'
+        run: exit 1
       - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run browser and visual regression
+        id: visual_tests
+        continue-on-error: true
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase5-visual-regression
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          if-no-files-found: warn
+      - name: Enforce browser regression result
+        if: steps.visual_tests.outcome == 'failure'
+        run: exit 1
