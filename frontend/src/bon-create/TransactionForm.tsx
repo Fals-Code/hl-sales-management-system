@@ -4,6 +4,7 @@ import { formatCurrency } from "../data";
 import type { BonCalculation, LineCalculation, Mode } from "./types";
 
 export type TransactionFormProps = {
+  presentation?: "page" | "dialog";
   mode: Mode;
   date: string;
   number: string;
@@ -51,18 +52,18 @@ export type TransactionFormProps = {
 
 export function TransactionForm(props: TransactionFormProps) {
   const {
-    mode, date, number, customerCode, description, shipping, lines, productSearch,
+    presentation = "page", mode, date, number, customerCode, description, shipping, lines, productSearch,
     ownerPin, negativeProfitReason, activeCustomers, visibleProducts, customer,
     lineCalculations, calculation, validDate, valid, stockValid, needsApproval,
     saving, draftRestored, error, numberError, customerError, itemsError,
     ownerPinError, reasonError, hasProducts
   } = props;
 
-  return <section className="bon-create-page" aria-labelledby="bon-create-title">
-    <header className="bon-create-header">
+  return <section className={`bon-create-page ${presentation === "dialog" ? "bon-create-page--dialog" : ""}`} aria-labelledby="bon-create-title">
+    {presentation === "page" && <header className="bon-create-header">
       <button className="button button--secondary button--compact" type="button" onClick={props.onCancel}><ArrowLeft size={18} />Kembali</button>
       <div><span className="eyebrow">Transaksi baru</span><h2 id="bon-create-title">Buat {mode === "bonus" ? "Bonus Bon" : "Bon"}</h2><p>Isi informasi transaksi, tambahkan produk, lalu simpan dari ringkasan di sisi kanan.</p></div>
-    </header>
+    </header>}
 
     {draftRestored && <div className="bon-draft-banner"><Save size={20} /><div><strong>Draft sementara dipulihkan</strong><span>Data terakhir yang belum disimpan dimuat kembali. PIN Owner tidak pernah disimpan.</span></div><button className="button button--secondary button--compact" type="button" onClick={props.onDiscardDraft}>Mulai dari kosong</button></div>}
     {(!activeCustomers.length || !hasProducts) && <div className="acceptance-warning"><AlertTriangle size={20} /><span>Tambahkan pelanggan dan produk aktif sebelum membuat Bon.</span></div>}
