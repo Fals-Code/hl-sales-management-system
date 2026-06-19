@@ -18,3 +18,10 @@ export class ValidationError extends BusinessError {
     this.name = "ValidationError";
   }
 }
+
+export class DuplicateValueError extends BusinessError {
+  constructor(message: string) {
+    super(message);
+    this.name = "DuplicateValueError";
+  }
+}

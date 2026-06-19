@@ -111,6 +111,7 @@ model Bon {
   voidedAt          DateTime?
   deletedAt         DateTime?
   shippingCost      BigInt    @default(0)
+  description       String?
   totalBeforeDiscount BigInt  @default(0)
   totalAfterDiscount  BigInt  @default(0)
   totalAmount       BigInt    @default(0)

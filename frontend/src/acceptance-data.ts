@@ -239,7 +239,10 @@ export const acceptanceBons: AcceptanceBon[] = [
 export const roundToHundred = (value: number) => Math.round(value / 100) * 100;
 
 export const cascadingPrice = (basePrice: number, steps: number[]) =>
-  roundToHundred(steps.reduce((price, discount) => price * (1 - discount / 100), basePrice));
+  roundToHundred(steps.reduce(
+    (price, discount) => Math.floor(price * (100 - discount) / 100),
+    basePrice
+  ));
 
 export const effectiveDiscount = (steps: number[]) =>
   Math.round((1 - steps.reduce((factor, discount) => factor * (1 - discount / 100), 1)) * 10_000) / 100;

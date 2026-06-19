@@ -20,23 +20,22 @@ export class ReportingService {
   constructor(private readonly db: PrismaClient) {}
 
   async overall(filters: ReportFilters = {}) {
-    const piutangWhere = buildBonWhere({ ...filters, status: "PIUTANG" }, "bon");
     const voidWhere = buildBonWhere({ ...filters, status: "VOID" }, "bon");
 
-    const [piutang, activeAllocations, historicalPayments, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
-      this.db.bon.aggregate({ where: piutangWhere, _sum: { totalAmount: true } }),
-      this.db.paymentBon.findMany({ where: buildPaymentBonWhere(filters), include: { bon: true, payment: true } }),
+    const [totalPiutang, activeAllocations, historicalPayments, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
+      this.getPiutangTotal(filters),
+      this.db.paymentBon.findMany({ where: buildPaymentBonWhere(filters), include: { bon: { include: { items: true } }, payment: true } }),
       this.db.payment.aggregate({ where: buildPaymentWhere(filters, true), _sum: { historicalPaymentAmount: true } }),
       this.db.bon.count({ where: voidWhere }),
-      this.db.payment.count({ where: { ...buildPaymentWhere(filters, false), canceledAt: { not: null } } }),
+      this.db.payment.count({ where: { ...buildPaymentWhere(filters, true), canceledAt: { not: null } } }),
       this.db.bon.count({ where: { ...buildBonWhere(filters, "bon"), hasNegativeProfit: true, deletedAt: null } }),
-      this.getNetUsedBonusUnits(filters.customerId)
+      this.getNetUsedBonusUnits(filters)
     ]);
 
-    const paid = summarizeAllocations(activeAllocations);
+    const paid = summarizeAllocations(activeAllocations, filters.productType);
     return {
-      totalPiutang: toSafeMoneyNumber(piutang._sum.totalAmount, "totalPiutang"),
-      historicalPaymentAmount: toSafeMoneyNumber(historicalPayments._sum.historicalPaymentAmount, "historicalPaymentAmount"),
+      totalPiutang,
+      historicalPaymentAmount: filters.productType ? paid.totalAmount : toSafeMoneyNumber(historicalPayments._sum.historicalPaymentAmount, "historicalPaymentAmount"),
       activePaymentAmount: paid.totalAmount,
       totalPaid: paid.totalAmount,
       totalRevenue: paid.revenueLm + paid.revenueBr,
@@ -54,18 +53,18 @@ export class ReportingService {
 
   async byCustomer(customerId: string, filters: ReportFilters = {}) {
     const customerFilters = { ...filters, customerId };
-    const [totalBon, piutang, activeAllocations, negativeCount, bonus] = await Promise.all([
+    const [totalBon, totalPiutang, activeAllocations, negativeCount, bonus] = await Promise.all([
       this.db.bon.count({ where: buildBonWhere(customerFilters, "bon") }),
-      this.db.bon.aggregate({ where: buildBonWhere({ ...customerFilters, status: "PIUTANG" }, "bon"), _sum: { totalAmount: true } }),
-      this.db.paymentBon.findMany({ where: buildPaymentBonWhere(customerFilters), include: { bon: true, payment: true } }),
+      this.getPiutangTotal(customerFilters),
+      this.db.paymentBon.findMany({ where: buildPaymentBonWhere(customerFilters), include: { bon: { include: { items: true } }, payment: true } }),
       this.db.bon.count({ where: { ...buildBonWhere(customerFilters, "bon"), hasNegativeProfit: true } }),
       new BonusService(this.db).getAvailability(customerId)
     ]);
-    const paid = summarizeAllocations(activeAllocations);
+    const paid = summarizeAllocations(activeAllocations, filters.productType);
     return {
       customerId,
       totalBon,
-      totalPiutang: toSafeMoneyNumber(piutang._sum.totalAmount, "totalPiutang"),
+      totalPiutang,
       totalPaid: paid.totalAmount,
       totalRevenue: paid.revenueLm + paid.revenueBr,
       totalRevenueLm: paid.revenueLm,
@@ -139,9 +138,32 @@ export class ReportingService {
     });
   }
 
-  private async getNetUsedBonusUnits(customerId?: string) {
+  private async getPiutangTotal(filters: ReportFilters) {
+    const where = buildBonWhere({ ...filters, status: "PIUTANG" }, "bon");
+    if (!filters.productType) {
+      const result = await this.db.bon.aggregate({ where, _sum: { totalAmount: true } });
+      return toSafeMoneyNumber(result._sum.totalAmount, "totalPiutang");
+    }
+    const result = await this.db.bonItem.aggregate({
+      where: {
+        isBonus: false,
+        productTypeSnapshot: filters.productType,
+        bon: where
+      },
+      _sum: { subtotal: true }
+    });
+    return toSafeMoneyNumber(result._sum.subtotal, "totalPiutangScoped");
+  }
+
+  private async getNetUsedBonusUnits(filters: ReportFilters) {
+    const createdAt = buildDateRange(filters.paidAtFrom ?? filters.bonDateFrom, filters.paidAtTo ?? filters.bonDateTo)
+      ?? (filters.month && filters.year ? monthRange(filters.month, filters.year) : undefined);
     const ledgers = await this.db.bonusLedger.findMany({
-      where: { customerId, mutationType: { in: ["USED", "REVERSED"] } }
+      where: {
+        ...(filters.customerId ? { customerId: filters.customerId } : {}),
+        mutationType: { in: ["USED", "REVERSED"] },
+        ...(createdAt ? { createdAt } : {})
+      }
     });
     const usedIds = new Set(ledgers.filter((ledger) => ledger.mutationType === "USED").map((ledger) => ledger.id));
     return ledgers.reduce((sum, ledger) => {
@@ -152,16 +174,60 @@ export class ReportingService {
   }
 }
 
-function summarizeAllocations(allocations: Array<{ allocatedInvoiceAmount: bigint; allocatedProductRevenue: bigint; allocatedShipping: bigint; allocatedProfit: bigint; bon: { revenueLm: bigint; revenueBr: bigint; bonusCost: bigint } }>) {
+type AllocationForSummary = {
+  allocatedInvoiceAmount: bigint;
+  allocatedProductRevenue: bigint;
+  allocatedShipping: bigint;
+  allocatedProfit: bigint;
+  bon: {
+    revenueLm: bigint;
+    revenueBr: bigint;
+    bonusCost: bigint;
+    items: Array<{
+      productTypeSnapshot: string;
+      subtotal: bigint;
+      profitAmount: bigint;
+      costPriceSnapshot: bigint;
+      quantity: number;
+      isBonus: boolean;
+    }>;
+  };
+};
+
+function summarizeAllocations(allocations: AllocationForSummary[], productType?: "LM" | "BR") {
   return allocations.reduce(
-    (acc, allocation) => ({
-      totalAmount: acc.totalAmount + toSafeMoneyNumber(allocation.allocatedInvoiceAmount, "allocatedInvoiceAmount"),
-      revenueLm: acc.revenueLm + toSafeMoneyNumber(allocation.bon.revenueLm, "revenueLm"),
-      revenueBr: acc.revenueBr + toSafeMoneyNumber(allocation.bon.revenueBr, "revenueBr"),
-      profitAmount: acc.profitAmount + toSafeMoneyNumber(allocation.allocatedProfit, "allocatedProfit"),
-      shippingCost: acc.shippingCost + toSafeMoneyNumber(allocation.allocatedShipping, "allocatedShipping"),
-      bonusCost: acc.bonusCost + toSafeMoneyNumber(allocation.bon.bonusCost, "bonusCost")
-    }),
+    (acc, allocation) => {
+      const scopedItems = allocation.bon.items.filter((item) => !productType || item.productTypeSnapshot === productType);
+      const regularItems = scopedItems.filter((item) => !item.isBonus);
+      const bonusItems = scopedItems.filter((item) => item.isBonus);
+      const revenueLm = regularItems
+        .filter((item) => item.productTypeSnapshot === PRODUCT_TYPE.LM)
+        .reduce((sum, item) => sum + toSafeMoneyNumber(item.subtotal, "subtotal"), 0);
+      const revenueBr = regularItems
+        .filter((item) => item.productTypeSnapshot === PRODUCT_TYPE.BR)
+        .reduce((sum, item) => sum + toSafeMoneyNumber(item.subtotal, "subtotal"), 0);
+      const scopedProfit = regularItems.reduce((sum, item) => sum + toSafeMoneyNumber(item.profitAmount, "profitAmount"), 0);
+      const scopedBonusCost = bonusItems.reduce(
+        (sum, item) => sum + toSafeMoneyNumber(item.costPriceSnapshot, "costPriceSnapshot") * item.quantity,
+        0
+      );
+      return {
+        totalAmount: acc.totalAmount + (productType
+          ? revenueLm + revenueBr
+          : toSafeMoneyNumber(allocation.allocatedInvoiceAmount, "allocatedInvoiceAmount")),
+        revenueLm: acc.revenueLm + revenueLm,
+        revenueBr: acc.revenueBr + revenueBr,
+        profitAmount: acc.profitAmount + (productType
+          ? scopedProfit
+          : toSafeMoneyNumber(allocation.allocatedProfit, "allocatedProfit")),
+        shippingCost: acc.shippingCost + (productType
+          ? 0
+          : toSafeMoneyNumber(allocation.allocatedShipping, "allocatedShipping")),
+        bonusCost: acc.bonusCost + (productType
+          ? scopedBonusCost
+          : toSafeMoneyNumber(allocation.bon.bonusCost, "bonusCost"))
+      };
+    },
     { totalAmount: 0, revenueLm: 0, revenueBr: 0, profitAmount: 0, shippingCost: 0, bonusCost: 0 }
   );
 }

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { ZodError } from "zod";
-import { AuthorizationError, BusinessError, ValidationError } from "../../domain/errors";
+import { AuthorizationError, BusinessError, DuplicateValueError, ValidationError } from "../../domain/errors";
 import { failure } from "../serializers/response";
 import { HttpError } from "./httpErrors";
 
@@ -14,7 +14,10 @@ export function errorHandler(error: FastifyError | Error, request: FastifyReques
     return reply.status(400).send(failure("VALIDATION_ERROR", "Request tidak valid.", fields));
   }
   if (error instanceof AuthorizationError) {
-    return reply.status(403).send(failure("FORBIDDEN", error.message));
+    return reply.status(403).send(failure("INVALID_OWNER_PIN", error.message));
+  }
+  if (error instanceof DuplicateValueError) {
+    return reply.status(409).send(failure("DUPLICATE_VALUE", error.message));
   }
   if (error instanceof ValidationError) {
     return reply.status(400).send(failure("VALIDATION_ERROR", error.message));
