@@ -1,10 +1,12 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { BusinessError } from "../domain/errors";
 
 export type InventoryItem = {
   productId?: string | null;
   quantity: number;
 };
+
+type InventoryDb = Prisma.TransactionClient | PrismaClient;
 
 type StockRow = {
   id: string;
@@ -13,7 +15,7 @@ type StockRow = {
   deletedAt: Date | null;
 };
 
-export async function assertInventoryAvailable(tx: Prisma.TransactionClient, items: InventoryItem[]) {
+export async function assertInventoryAvailable(tx: InventoryDb, items: InventoryItem[]) {
   for (const [productId, quantity] of aggregateInventoryItems(items)) {
     const product = await readStock(tx, productId);
     if (!product || product.deletedAt) throw new BusinessError("One or more products are invalid.");
@@ -21,7 +23,7 @@ export async function assertInventoryAvailable(tx: Prisma.TransactionClient, ite
   }
 }
 
-export async function reserveInventory(tx: Prisma.TransactionClient, items: InventoryItem[]) {
+export async function reserveInventory(tx: InventoryDb, items: InventoryItem[]) {
   for (const [productId, quantity] of aggregateInventoryItems(items)) {
     const updated = await tx.$executeRaw`
       UPDATE "Product"
@@ -39,7 +41,7 @@ export async function reserveInventory(tx: Prisma.TransactionClient, items: Inve
   }
 }
 
-export async function restoreInventory(tx: Prisma.TransactionClient, items: InventoryItem[]) {
+export async function restoreInventory(tx: InventoryDb, items: InventoryItem[]) {
   for (const [productId, quantity] of aggregateInventoryItems(items)) {
     const updated = await tx.$executeRaw`
       UPDATE "Product"
@@ -62,7 +64,7 @@ export function aggregateInventoryItems(items: InventoryItem[]) {
   return [...quantities.entries()].sort(([left], [right]) => left.localeCompare(right));
 }
 
-async function readStock(tx: Prisma.TransactionClient, productId: string) {
+async function readStock(tx: InventoryDb, productId: string) {
   const rows = await tx.$queryRaw<StockRow[]>`
     SELECT "id", "name", "stock", "deletedAt"
     FROM "Product"
