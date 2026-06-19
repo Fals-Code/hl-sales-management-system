@@ -17,8 +17,9 @@ async function createNormalBon(page: Page, description: string) {
   const bonNumber = await dialog.getByLabel("Nomor Bon *").inputValue();
   await dialog.getByLabel("Deskripsi").fill(description);
   await dialog.getByRole("button", { name: "Simpan Bon" }).click();
-  await expect(dialog.getByRole("heading", { name: bonNumber })).toBeVisible();
-  await dialog.getByRole("button", { name: "Selesai" }).click();
+  await expect(dialog).toBeHidden();
+  await waitForApp(page);
+  await expect(page.getByText(bonNumber, { exact: true }).first()).toBeVisible();
   return bonNumber;
 }
 
@@ -49,14 +50,17 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await customerDialog.getByLabel("Threshold Bonus *").fill("100000");
   await customerDialog.getByRole("button", { name: "Simpan" }).click();
   await expect(customerDialog).toBeHidden();
-  await expect(page.getByText("Toko Integrasi API", { exact: true })).toBeVisible();
+  await waitForApp(page);
+  const customerCard = page.locator(".acceptance-customer-card").filter({ hasText: "Toko Integrasi API" }).first();
+  await expect(customerCard).toBeVisible();
 
-  await page.getByText("Toko Integrasi API", { exact: true }).click();
+  await customerCard.click();
   await page.getByRole("button", { name: "Edit" }).click();
   const customerEditDialog = page.getByRole("dialog");
   await customerEditDialog.getByLabel("Telepon").fill("081234567891");
   await customerEditDialog.getByRole("button", { name: "Simpan" }).click();
   await expect(customerEditDialog).toBeHidden();
+  await waitForApp(page);
   await expect(page.getByText("081234567891", { exact: false })).toBeVisible();
 
   await page.goto("/#/products");
@@ -69,15 +73,17 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await productDialog.getByLabel("Stok *").fill("10");
   await productDialog.getByRole("button", { name: "Simpan Produk" }).click();
   await expect(productDialog).toBeHidden();
-  await expect(page.getByText("Produk Integrasi API", { exact: true })).toBeVisible();
+  await waitForApp(page);
+  const productCard = page.locator(".acceptance-product-card").filter({ hasText: "Produk Integrasi API" }).first();
+  await expect(productCard).toBeVisible();
 
-  const productCard = page.locator(".acceptance-product-card").filter({ hasText: "Produk Integrasi API" });
   await productCard.getByRole("button", { name: "Edit" }).click();
   const productEditDialog = page.getByRole("dialog");
   await productEditDialog.getByLabel("Nama produk *").fill("Produk Integrasi API Final");
   await productEditDialog.getByRole("button", { name: "Simpan Produk" }).click();
   await expect(productEditDialog).toBeHidden();
-  await expect(page.getByText("Produk Integrasi API Final", { exact: true })).toBeVisible();
+  await waitForApp(page);
+  await expect(page.getByText("Produk Integrasi API Final", { exact: true }).first()).toBeVisible();
 
   const firstBonNumber = await createNormalBon(page, "Transaksi browser dengan API nyata");
 
@@ -93,6 +99,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await editDialog.getByLabel("Deskripsi").fill("Transaksi API sudah diperbarui");
   await editDialog.getByRole("button", { name: "Simpan Perubahan" }).click();
   await expect(editDialog).toBeHidden();
+  await waitForApp(page);
   await expect(page.getByText("Perubahan Bon Piutang berhasil disimpan", { exact: false })).toBeVisible();
 
   await settleCurrentBon(page);
@@ -139,9 +146,11 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   const bonusNumber = await bonusDialog.getByLabel("Nomor Bon *").inputValue();
   expect(bonusNumber).toMatch(/^BONUS-/);
   await bonusDialog.getByRole("button", { name: "Simpan Bon" }).click();
-  await expect(bonusDialog.getByRole("heading", { name: bonusNumber })).toBeVisible();
-  await bonusDialog.getByRole("button", { name: "Selesai" }).click();
-  await expect(page.getByText(bonusNumber, { exact: true })).toBeVisible();
+  await expect(bonusDialog).toBeHidden();
+  await waitForApp(page);
+  await page.goto("/#/bonus");
+  await waitForApp(page);
+  await expect(page.getByText(bonusNumber, { exact: true }).first()).toBeVisible();
 
   const deletedBonNumber = await createNormalBon(page, "Transaksi khusus pengujian soft-delete");
   await page.goto(`/#/bon/${encodeURIComponent(deletedBonNumber)}`);
@@ -159,7 +168,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await waitForApp(page);
   await expect(page.getByText("Omzet Diakui", { exact: true })).toBeVisible();
   await expect(page.getByText("Memuat rekap backend...")).toBeHidden();
-  await expect(page.getByText(firstBonNumber, { exact: true })).toBeVisible();
+  await expect(page.getByText(firstBonNumber, { exact: true }).first()).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();
