@@ -16,6 +16,7 @@ import "./app-state.css";
 import "./sidebar-refinement.css";
 import "./navbar-refinement.css";
 import "./profile-menu-refinement.css";
+import "./bon-dialog-layout-fix.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
