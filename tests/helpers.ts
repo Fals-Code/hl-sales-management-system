@@ -99,9 +99,9 @@ export async function createFixture(ctx: TestContext, bonusThreshold = 100000) {
       { productType: "BR", sequence: 1, percentBps: 2000 }
     ]
   });
-  const lm = await ctx.products.createProduct({ name: "Logam Mulia", type: "LM", costPrice: 80000, basePrice: 100000 });
-  const br = await ctx.products.createProduct({ name: "Barang Retail", type: "BR", costPrice: 30000, basePrice: 50000 });
-  const loss = await ctx.products.createProduct({ name: "Loss", type: "BR", costPrice: 100000, basePrice: 50000 });
+  const lm = await ctx.products.createProduct({ name: "Logam Mulia", type: "LM", stock: 100, costPrice: 80000, basePrice: 100000 });
+  const br = await ctx.products.createProduct({ name: "Barang Retail", type: "BR", stock: 100, costPrice: 30000, basePrice: 50000 });
+  const loss = await ctx.products.createProduct({ name: "Loss", type: "BR", stock: 100, costPrice: 100000, basePrice: 50000 });
   return { user, customer, lm, br, loss };
 }
 
