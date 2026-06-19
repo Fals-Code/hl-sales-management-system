@@ -1,10 +1,17 @@
 name: Verify POS and PDF
 
 on:
+  push:
+    branches:
+      - fix/pos-page-pdf-polish-v2
   pull_request:
     branches:
       - phase-5-api-integration
   workflow_dispatch:
+
+concurrency:
+  group: verify-pos-pdf-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
@@ -90,11 +97,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Build frontend
         id: frontend_build
