@@ -1,4 +1,6 @@
+import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AcceptanceBonLine } from "../acceptance-data";
 import { currentIsoDate } from "../acceptance-data";
 import { ApiClientError, bonApi, bonusBonApi, downloadApiFile, useApi } from "../api-client";
@@ -9,9 +11,10 @@ import { TransactionCreateResult } from "./TransactionCreateResult";
 import { clearDraft, nextBonNumber, normalizeFieldErrors, readDraft, roundHundred, writeDraft } from "./draft";
 import type { ApiBon, LineCalculation, Mode, SavedBonSnapshot } from "./types";
 
-export function TransactionCreatePage({ prefillCustomerCode, initialMode = "normal", onCancel, onViewBon, onDirtyChange }: {
+export function TransactionCreatePage({ prefillCustomerCode, initialMode = "normal", presentation = "page", onCancel, onViewBon, onDirtyChange }: {
   prefillCustomerCode?: string | null;
   initialMode?: Mode;
+  presentation?: "page" | "dialog";
   onCancel: () => void;
   onViewBon: (bonNumber: string) => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -248,26 +251,42 @@ export function TransactionCreatePage({ prefillCustomerCode, initialMode = "norm
     }
   };
 
-  if (saved) return <TransactionCreateResult saved={saved} snapshot={savedSnapshot} error={error} printing={printing} onPrint={() => { void printSavedBon(); }} onReset={resetForNextBon} onViewBon={onViewBon} onBack={onCancel} />;
+  const content = saved
+    ? <TransactionCreateResult saved={saved} snapshot={savedSnapshot} error={error} printing={printing} onPrint={() => { void printSavedBon(); }} onReset={resetForNextBon} onViewBon={onViewBon} onBack={cancel} />
+    : <TransactionForm
+      presentation={presentation}
+      mode={mode} date={date} number={number} customerCode={customerCode} description={description} shipping={shipping}
+      lines={lines} productSearch={productSearch} ownerPin={ownerPin} negativeProfitReason={negativeProfitReason}
+      activeCustomers={activeCustomers} visibleProducts={visibleProducts} customer={customer} lineCalculations={lineCalculations}
+      calculation={calculation} validDate={validDate} valid={valid} stockValid={stockValid} needsApproval={needsApproval}
+      saving={saving} draftRestored={draftRestored} error={error} numberError={numberError} customerError={customerError}
+      itemsError={itemsError} ownerPinError={ownerPinError} reasonError={reasonError} hasProducts={activeProducts.length > 0}
+      onCancel={cancel} onDiscardDraft={discardDraft}
+      onModeChange={(next) => { if (mode === next) return; markTouched(); setMode(next); setNumber(nextBonNumber(next, date, bons)); if (next === "bonus") setShipping(0); setServerFieldErrors({}); }}
+      onDateChange={(value) => { markTouched(); setDate(value); setNumber(nextBonNumber(mode, value, bons)); }}
+      onNumberChange={(value) => { markTouched(); setNumber(value); clearFieldError("bonNumber"); }}
+      onCustomerChange={(value) => { markTouched(); setCustomerCode(value); clearFieldError("customerId"); }}
+      onDescriptionChange={(value) => { markTouched(); setDescription(value); }} onSearchChange={setProductSearch} onAddProduct={addProduct}
+      onQuantityChange={(productId, value) => { markTouched(); setLines((current) => current.map((line) => line.productId === productId ? { ...line, quantity: Math.max(1, Math.floor(value || 1)) } : line)); }}
+      onRemoveProduct={(productId) => { markTouched(); setLines((current) => current.filter((line) => line.productId !== productId)); }}
+      onShippingChange={(value) => { markTouched(); setShipping(Math.max(0, Math.floor(value || 0))); }}
+      onOwnerPinChange={(value) => { markTouched(); setOwnerPin(value.replace(/\D/g, "").slice(0, 6)); clearFieldError("ownerPin"); }}
+      onReasonChange={(value) => { markTouched(); setNegativeProfitReason(value); clearFieldError("negativeProfitReason"); }}
+      onSave={() => { void save(); }}
+    />;
 
-  return <TransactionForm
-    mode={mode} date={date} number={number} customerCode={customerCode} description={description} shipping={shipping}
-    lines={lines} productSearch={productSearch} ownerPin={ownerPin} negativeProfitReason={negativeProfitReason}
-    activeCustomers={activeCustomers} visibleProducts={visibleProducts} customer={customer} lineCalculations={lineCalculations}
-    calculation={calculation} validDate={validDate} valid={valid} stockValid={stockValid} needsApproval={needsApproval}
-    saving={saving} draftRestored={draftRestored} error={error} numberError={numberError} customerError={customerError}
-    itemsError={itemsError} ownerPinError={ownerPinError} reasonError={reasonError} hasProducts={activeProducts.length > 0}
-    onCancel={cancel} onDiscardDraft={discardDraft}
-    onModeChange={(next) => { if (mode === next) return; markTouched(); setMode(next); setNumber(nextBonNumber(next, date, bons)); if (next === "bonus") setShipping(0); setServerFieldErrors({}); }}
-    onDateChange={(value) => { markTouched(); setDate(value); setNumber(nextBonNumber(mode, value, bons)); }}
-    onNumberChange={(value) => { markTouched(); setNumber(value); clearFieldError("bonNumber"); }}
-    onCustomerChange={(value) => { markTouched(); setCustomerCode(value); clearFieldError("customerId"); }}
-    onDescriptionChange={(value) => { markTouched(); setDescription(value); }} onSearchChange={setProductSearch} onAddProduct={addProduct}
-    onQuantityChange={(productId, value) => { markTouched(); setLines((current) => current.map((line) => line.productId === productId ? { ...line, quantity: Math.max(1, Math.floor(value || 1)) } : line)); }}
-    onRemoveProduct={(productId) => { markTouched(); setLines((current) => current.filter((line) => line.productId !== productId)); }}
-    onShippingChange={(value) => { markTouched(); setShipping(Math.max(0, Math.floor(value || 0))); }}
-    onOwnerPinChange={(value) => { markTouched(); setOwnerPin(value.replace(/\D/g, "").slice(0, 6)); clearFieldError("ownerPin"); }}
-    onReasonChange={(value) => { markTouched(); setNegativeProfitReason(value); clearFieldError("negativeProfitReason"); }}
-    onSave={() => { void save(); }}
-  />;
+  if (presentation !== "dialog") return content;
+
+  return createPortal(
+    <div className="dialog-backdrop acceptance-dialog-backdrop bon-create-dialog-backdrop" role="presentation" onMouseDown={cancel}>
+      <section className="acceptance-master-dialog bon-create-dialog" role="dialog" aria-modal="true" aria-labelledby="bon-create-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <div><span className="eyebrow">Transaksi baru</span><h2 id="bon-create-dialog-title">Buat {mode === "bonus" ? "Bonus Bon" : "Bon"}</h2><p>Isi informasi transaksi, pilih produk, lalu konfirmasi ringkasan.</p></div>
+          <button className="icon-button" type="button" disabled={saving} onClick={cancel} aria-label="Tutup form Buat Bon"><X size={22} /></button>
+        </header>
+        <div className="acceptance-master-body bon-create-dialog-body">{content}</div>
+      </section>
+    </div>,
+    document.body
+  );
 }
