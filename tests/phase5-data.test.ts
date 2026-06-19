@@ -46,9 +46,46 @@ describe("Phase 5 data hydration", () => {
     expect(payload.customers).toHaveLength(1);
     expect(payload.customers[0].discountTiers).toHaveLength(3);
     expect(payload.customers[0].bonusAvailability.totalSettledRevenue).toBeGreaterThan(0);
+    expect(payload.customers[0].bonusHistory.length).toBeGreaterThan(0);
     expect(payload.products).toHaveLength(3);
     expect(payload.bons).toHaveLength(1);
     expect(payload.bons[0].items[0].productNameSnapshot).toBe("Logam Mulia");
+  });
+
+  it("protects and serves the authoritative bootstrap endpoint", async () => {
+    await createUser(ctx.db);
+    const { customer, lm } = await createFixture(ctx, 100_000);
+    const bon = await ctx.transactions.createBon({
+      bonNumber: "BON-20260619-301",
+      customerId: customer.id,
+      items: [{ productId: lm.id, quantity: 1 }]
+    });
+    await ctx.settlements.settleBons({ customerId: customer.id, bonIds: [bon.id] });
+
+    const unauthorized = await app.inject({ method: "GET", url: "/api/v1/bootstrap" });
+    expect(unauthorized.statusCode).toBe(401);
+
+    const login = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: { username: TEST_USERNAME, password: TEST_USER_PASSWORD }
+    });
+    expect(login.statusCode).toBe(200);
+    const cookie = String(login.headers["set-cookie"]).split(";")[0];
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/bootstrap",
+      headers: { cookie }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const data = response.json().data;
+    expect(data.customers).toHaveLength(1);
+    expect(data.customers[0].bonusAvailability.availableUnits).toBeGreaterThanOrEqual(1);
+    expect(data.customers[0].bonusHistory.length).toBeGreaterThan(0);
+    expect(data.products).toHaveLength(3);
+    expect(data.bons[0].bonNumber).toBe("BON-20260619-301");
   });
 
   it("persists the complete authenticated Bon lifecycle through HTTP routes", async () => {
