@@ -66,6 +66,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [persisted]);
 
   useEffect(() => {
+    const activeDerivedIds = new Set(derived.map((notification) => notification.id));
+    setPersisted((current) => {
+      let changed = false;
+      const next: Record<string, PersistedEntry> = {};
+      for (const [id, state] of Object.entries(current)) {
+        if (!state.notification && !activeDerivedIds.has(id)) {
+          changed = true;
+          continue;
+        }
+        next[id] = state;
+      }
+      return changed ? next : current;
+    });
+  }, [derived]);
+
+  useEffect(() => {
     const receiveNotification = (event: Event) => {
       const notification = (event as CustomEvent<AppNotification>).detail;
       if (!notification) return;
