@@ -1,0 +1,96 @@
+import {
+  apiRequest,
+  type ApiClientError
+} from "./api-client";
+
+export type ApiProductType = "LM" | "BR";
+export type ApiDiscountTierDto = { productType: ApiProductType; sequence: number; percentBps: number };
+export type ApiThresholdHistoryDto = { oldValue: number; newValue: number; effectiveFrom: string; reason: string | null };
+export type ApiBonusAvailabilityDto = {
+  threshold: number;
+  totalSettledRevenue: number;
+  entitledUnits: number;
+  usedUnits: number;
+  adjustmentUnits: number;
+  ledgerBalance: number;
+  availableUnits: number;
+};
+export type ApiCustomerDto = {
+  id: string;
+  code: string | null;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  bonusThreshold: number;
+  deletedAt: string | null;
+  discountTiers: ApiDiscountTierDto[];
+  thresholdHistories?: ApiThresholdHistoryDto[];
+  bonusAvailability?: ApiBonusAvailabilityDto;
+};
+export type ApiProductDto = {
+  id: string;
+  sku: string | null;
+  name: string;
+  type: ApiProductType;
+  costPrice: number;
+  basePrice: number;
+  deletedAt: string | null;
+};
+export type ApiBonItemDto = {
+  id: string;
+  productId: string | null;
+  kind: string;
+  productNameSnapshot: string;
+  productTypeSnapshot: ApiProductType;
+  costPriceSnapshot: number;
+  basePriceSnapshot: number;
+  discountSnapshotJson: string;
+  quantity: number;
+  isBonus: boolean;
+};
+export type ApiBonDto = {
+  id: string;
+  bonNumber: string;
+  customerId: string;
+  status: string;
+  bonDate: string;
+  settledAt: string | null;
+  deletedAt: string | null;
+  shippingCost: number;
+  description: string | null;
+  items: ApiBonItemDto[];
+  customer: { id: string; code: string | null; name: string };
+};
+export type HydrationPayload = {
+  generatedAt: string;
+  customers: ApiCustomerDto[];
+  products: ApiProductDto[];
+  bons: ApiBonDto[];
+};
+
+const PAGE_LIMIT = 100;
+
+export const hydrationApi = {
+  load: async (): Promise<HydrationPayload> => {
+    const [customerRows, products, bons] = await Promise.all([
+      apiRequest<ApiCustomerDto[]>(`/api/v1/customers?limit=${PAGE_LIMIT}&sortBy=name&sortOrder=asc`),
+      apiRequest<ApiProductDto[]>(`/api/v1/products?limit=${PAGE_LIMIT}&sortBy=name&sortOrder=asc`),
+      apiRequest<ApiBonDto[]>(`/api/v1/bons?limit=${PAGE_LIMIT}&sortBy=bonDate&sortOrder=desc`)
+    ]);
+
+    const customers = await Promise.all(customerRows.map(async (customer) => {
+      const [detail, bonusAvailability] = await Promise.all([
+        apiRequest<ApiCustomerDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}`),
+        apiRequest<ApiBonusAvailabilityDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus`)
+      ]);
+      return { ...customer, ...detail, bonusAvailability };
+    }));
+
+    return { generatedAt: new Date().toISOString(), customers, products, bons };
+  }
+};
+
+export function hydrationErrorMessage(error: unknown) {
+  const apiError = error as ApiClientError | undefined;
+  return apiError?.message || "Data aplikasi tidak dapat dimuat.";
+}
