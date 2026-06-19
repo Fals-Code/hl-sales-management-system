@@ -56,6 +56,10 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-source-snapshot
+          path: frontend/src
       - uses: actions/setup-node@v4
         with:
           node-version: 24
