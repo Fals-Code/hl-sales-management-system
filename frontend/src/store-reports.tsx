@@ -1,8 +1,8 @@
 import { BarChart3, Download, FileText } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { AcceptanceBon, ProductType } from "./acceptance-data";
+import type { ProductType } from "./acceptance-data";
 import { formatCurrency } from "./data";
-import { useAppStore } from "./store";
+import { useAppStore, type StoredBon, type StoredCustomer, type StoredProduct } from "./store";
 
 type Scope = "ALL" | ProductType;
 
@@ -13,12 +13,12 @@ export function StoreReports() {
   const [customerCode, setCustomerCode] = useState("ALL");
 
   const rows = useMemo(() => bons.filter((bon) => {
-    if (bon.status === "Void") return false;
+    if (bon.deletedAt || bon.status === "Void") return false;
     if (customerCode !== "ALL" && bon.customerCode !== customerCode) return false;
-    const reportDate = bon.status === "Piutang" ? bon.date : bon.paymentDate ?? bon.date;
-    if (!reportDate.startsWith(period)) return false;
+    const reportDate = reportDateFor(bon);
+    if (!reportDate || !reportDate.startsWith(period)) return false;
     if (scope === "ALL") return true;
-    return bon.lines.some((line) => products.find((item) => item.id === line.productId)?.type === scope);
+    return bon.lines.some((line) => line.snapshotProductType === scope || (!line.snapshotProductType && products.find((item) => item.id === line.productId)?.type === scope));
   }), [bons, products, period, scope, customerCode]);
 
   const totals = useMemo(() => rows.reduce((result, bon) => {
@@ -63,7 +63,7 @@ export function StoreReports() {
 
       <section className="acceptance-card">
         <div className="acceptance-card-heading"><div><span className="eyebrow">Transaksi dalam periode</span><h3>Rincian</h3></div><span>{rows.length} Bon</span></div>
-        <div className="acceptance-table-wrap"><table className="acceptance-table"><thead><tr><th>Nomor Bon</th><th>Tanggal Acuan</th><th>Status</th><th>Total Scoped</th></tr></thead><tbody>{rows.map((bon) => { const value = calculateScoped(bon, scope, customers, products); const reportDate = bon.status === "Piutang" ? bon.date : bon.paymentDate ?? bon.date; return <tr key={bon.number}><td><strong>{bon.number}</strong></td><td>{reportDate}</td><td>{bon.status}</td><td>{formatCurrency(value.total)}</td></tr>; })}</tbody></table></div>
+        <div className="acceptance-table-wrap"><table className="acceptance-table"><thead><tr><th>Nomor Bon</th><th>Tanggal Acuan</th><th>Status</th><th>Total Scoped</th></tr></thead><tbody>{rows.map((bon) => { const value = calculateScoped(bon, scope, customers, products); return <tr key={bon.number}><td><strong>{bon.number}</strong></td><td>{reportDateFor(bon)}</td><td>{bon.status}</td><td>{formatCurrency(value.total)}</td></tr>; })}</tbody></table></div>
       </section>
     </section>
   );
@@ -73,20 +73,27 @@ function Metric({ label, value }: { label: string; value: number }) {
   return <article className="acceptance-report-metric"><span>{label}</span><strong>{formatCurrency(value)}</strong></article>;
 }
 
-function calculateScoped(bon: AcceptanceBon, scope: Scope, customers: ReturnType<typeof useAppStore>["customers"], products: ReturnType<typeof useAppStore>["products"]) {
+export function reportDateFor(bon: StoredBon) {
+  if (bon.status === "Piutang") return bon.date;
+  if (bon.status === "Lunas") return bon.paymentDate;
+  return bon.paymentDate ?? bon.date;
+}
+
+export function calculateScoped(bon: StoredBon, scope: Scope, customers: StoredCustomer[], products: StoredProduct[]) {
   const customer = customers.find((item) => item.code === bon.customerCode);
   const values = bon.lines.reduce((result, line) => {
     const product = products.find((item) => item.id === line.productId);
-    if (!product || !customer || (scope !== "ALL" && product.type !== scope)) return result;
+    const productType = line.snapshotProductType ?? product?.type;
+    if (!product || !customer || !productType || (scope !== "ALL" && productType !== scope)) return result;
     const base = line.snapshotBasePrice ?? product.basePrice;
     const cost = line.snapshotCostPrice ?? product.costPrice;
-    const discounts = line.snapshotDiscounts ?? (product.type === "LM" ? customer.discountLm : customer.discountBr);
+    const discounts = line.snapshotDiscounts ?? (productType === "LM" ? customer.discountLm : customer.discountBr);
     const unit = bon.isBonus ? 0 : roundHundred(discounts.reduce((price, discount) => Math.floor(price * (100 - discount) / 100), base));
     const lineOmzet = unit * line.quantity;
     result.omzet += lineOmzet;
     result.profit += bon.isBonus ? 0 : (unit - cost) * line.quantity;
     result.bonusCost += bon.isBonus ? cost * line.quantity : 0;
-    result[product.type === "LM" ? "lm" : "br"] += lineOmzet;
+    result[productType === "LM" ? "lm" : "br"] += lineOmzet;
     return result;
   }, { omzet: 0, profit: 0, bonusCost: 0, lm: 0, br: 0 });
   const shipping = scope === "ALL" && !bon.isBonus ? bon.shipping : 0;
