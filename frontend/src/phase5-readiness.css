@@ -1,0 +1,177 @@
+.acceptance-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.acceptance-report-metric {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 17px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(23, 32, 42, 0.035);
+}
+
+.acceptance-report-metric span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.acceptance-report-metric strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: clamp(1.08rem, 1.7vw, 1.42rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.acceptance-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.acceptance-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.acceptance-table th,
+.acceptance-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e8edf1;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.acceptance-table th {
+  background: #f7f9fb;
+  color: #445467;
+  font-size: 0.76rem;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.acceptance-table td {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.acceptance-table td:first-child {
+  min-width: 190px;
+}
+
+.acceptance-table td:last-child,
+.acceptance-table th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .acceptance-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .acceptance-toolbar .field,
+  .acceptance-toolbar .search-box {
+    width: 100%;
+  }
+
+  .acceptance-report-metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .acceptance-report-metric {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+  }
+
+  .acceptance-report-metric strong {
+    max-width: 56vw;
+    text-align: right;
+  }
+
+  .acceptance-table-wrap {
+    overflow: visible;
+  }
+
+  .acceptance-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .acceptance-table thead {
+    display: none;
+  }
+
+  .acceptance-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .acceptance-table tr {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(23, 32, 42, 0.035);
+  }
+
+  .acceptance-table td,
+  .acceptance-table td:first-child,
+  .acceptance-table td:last-child {
+    display: grid;
+    grid-template-columns: minmax(102px, 0.8fr) minmax(0, 1.2fr);
+    align-items: start;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-bottom: 1px solid #edf1f4;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .acceptance-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .acceptance-table td::before {
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  .acceptance-table td:nth-child(1)::before {
+    content: "Nomor Bon";
+  }
+
+  .acceptance-table td:nth-child(2)::before {
+    content: "Tanggal Acuan";
+  }
+
+  .acceptance-table td:nth-child(3)::before {
+    content: "Status";
+  }
+
+  .acceptance-table td:nth-child(4)::before {
+    content: "Total Scoped";
+  }
+}
