@@ -15,6 +15,11 @@ export class ApiClientError extends Error {
 type ApiSuccess<T> = { success: true; data: T };
 type ApiFailure = { success: false; error: { code: string; message: string; fields?: Record<string, unknown> } };
 
+type ApiFile = {
+  blob: Blob;
+  filename?: string;
+};
+
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, window.location);
 export const useApi = import.meta.env.VITE_USE_API === "true";
 export const SESSION_EXPIRED_EVENT = "hl:session-expired";
@@ -60,11 +65,32 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, timeou
   }
 }
 
+export async function createApiFileObjectUrl(path: string) {
+  const file = await fetchApiFile(path);
+  return {
+    url: URL.createObjectURL(file.blob),
+    filename: file.filename
+  };
+}
+
 export async function downloadApiFile(path: string, fallbackFilename: string) {
+  const file = await fetchApiFile(path);
+  const objectUrl = URL.createObjectURL(file.blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = file.filename || fallbackFilename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
+async function fetchApiFile(path: string): Promise<ApiFile> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     headers: { Accept: "application/pdf" }
   });
+
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
     let failure: ApiFailure | undefined;
@@ -75,20 +101,16 @@ export async function downloadApiFile(path: string, fallbackFilename: string) {
     }
     throw new ApiClientError(
       failure?.error?.code || "DOWNLOAD_FAILED",
-      failure?.error?.message || "File gagal diunduh.",
+      failure?.error?.message || "File gagal dimuat.",
       failure?.error?.fields || {},
       response.status
     );
   }
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = responseFilename(response.headers.get("Content-Disposition")) || fallbackFilename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+
+  return {
+    blob: await response.blob(),
+    filename: responseFilename(response.headers.get("Content-Disposition"))
+  };
 }
 
 async function readPayload<T>(response: Response): Promise<ApiSuccess<T> | ApiFailure> {
