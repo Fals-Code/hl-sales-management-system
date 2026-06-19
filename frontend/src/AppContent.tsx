@@ -4,7 +4,7 @@ import { DashboardPage } from "./DashboardPage";
 import type { PageKey } from "./data";
 import { FinalSettingsPage } from "./final-pages";
 import { StoreBonus } from "./store-bonus";
-import { StoreBonCreatePage } from "./store-bon-create";
+import { StoreBonCreateCompatPage } from "./store-bon-create-compat";
 import { StoreCustomers } from "./store-customers";
 import { StoreProducts } from "./store-products";
 import { StoreReports } from "./store-reports";
@@ -18,7 +18,7 @@ export function AppContent({ activePage, selectedBonNumber, createBonMode, creat
     {activePage === "customers" && <StoreCustomers onCreateBon={onOpenBon} onSettlement={onOpenSettlement} onViewBon={onViewBon} />}
     {activePage === "products" && <StoreProducts />}
     {activePage === "bons" && <AcceptanceBonsPage onCreateBon={() => onOpenBon()} onViewBon={onViewBon} />}
-    {activePage === "create-bon" && <StoreBonCreatePage prefillCustomerCode={createBonCustomerCode} initialMode={createBonMode ?? "normal"} onCancel={() => onChangePage("bons")} onViewBon={onViewBon} />}
+    {activePage === "create-bon" && <StoreBonCreateCompatPage prefillCustomerCode={createBonCustomerCode} initialMode={createBonMode ?? "normal"} onCancel={() => onChangePage("bons")} onViewBon={onViewBon} />}
     {activePage === "receivables" && <AcceptanceReceivablesPage onSettlement={() => onOpenSettlement()} onViewBon={onViewBon} />}
     {activePage === "settlements" && <StoreSettlement prefillCustomerCode={settlementCustomerCode} onViewBon={onViewBon} />}
     {activePage === "bonus" && <StoreBonus onCreateBonusBon={onOpenBonusBon} />}
