@@ -22,10 +22,12 @@ export function AcceptancePdfPreviewDialog({
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
-  onDownload: () => void;
+  onDownload?: () => void;
   onPrint: () => void;
 }) {
   if (!open) return null;
+
+  const isRealPdfPreview = Boolean(documentUrl);
 
   return createPortal(
     <div className="dialog-backdrop acceptance-dialog-backdrop acceptance-pdf-backdrop" role="presentation" onMouseDown={onClose}>
@@ -33,7 +35,7 @@ export function AcceptancePdfPreviewDialog({
         <header className="acceptance-pdf-header">
           <div className="acceptance-pdf-heading">
             <span className="acceptance-page-icon"><FileText size={27} /></span>
-            <div><span className="eyebrow">Preview PDF resmi</span><h2 id="acceptance-pdf-title">{title}</h2><p>{subtitle}</p></div>
+            <div><span className="eyebrow">{isRealPdfPreview ? "Preview PDF resmi" : "Preview dokumen"}</span><h2 id="acceptance-pdf-title">{title}</h2><p>{subtitle}</p></div>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Tutup preview"><X size={23} /></button>
         </header>
@@ -46,11 +48,11 @@ export function AcceptancePdfPreviewDialog({
         </div>
 
         <footer className="acceptance-pdf-actions">
-          <p>Preview menampilkan file PDF yang sama dengan hasil unduhan, bukan simulasi halaman HTML.</p>
+          <p>{isRealPdfPreview ? "Preview menampilkan file PDF yang sama dengan hasil unduhan." : "Gunakan dialog cetak browser untuk mencetak atau menyimpan dokumen sebagai PDF."}</p>
           <div>
             <button className="button button--secondary" type="button" onClick={onClose}>Tutup</button>
-            <button className="button button--secondary" type="button" disabled={loading || Boolean(error)} onClick={onPrint}><Printer size={18} />Buka / Cetak</button>
-            <button className="button button--primary" type="button" disabled={loading || Boolean(error)} onClick={onDownload}><Download size={18} />Unduh PDF</button>
+            <button className="button button--secondary" type="button" disabled={loading || Boolean(error)} onClick={onPrint}><Printer size={18} />{isRealPdfPreview ? "Buka / Cetak" : "Cetak Dokumen"}</button>
+            {onDownload && <button className="button button--primary" type="button" disabled={loading || Boolean(error)} onClick={onDownload}><Download size={18} />Unduh PDF</button>}
           </div>
         </footer>
       </section>
