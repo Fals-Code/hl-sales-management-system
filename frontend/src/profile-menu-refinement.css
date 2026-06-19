@@ -1,0 +1,49 @@
+/* Profile menu opens on hover/focus and remains reachable without a preliminary click. */
+
+.profile-trigger {
+  padding-right: 10px;
+  cursor: default;
+}
+
+.profile-chevron {
+  display: none !important;
+}
+
+.profile-menu::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 100%;
+  height: 10px;
+  content: "";
+}
+
+.profile-dropdown {
+  top: calc(100% + 4px);
+}
+
+.profile-menu:hover .profile-dropdown,
+.profile-menu:focus-within .profile-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.profile-dropdown > button {
+  cursor: pointer;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .profile-trigger {
+    cursor: pointer;
+  }
+
+  .profile-menu::after {
+    display: none;
+  }
+
+  .profile-dropdown {
+    top: calc(var(--topbar-height) - 2px);
+  }
+}
