@@ -12,6 +12,34 @@ phase-5-api-integration
 
 Mengganti data seed dan localStorage sebagai sumber data utama dengan backend API nyata tanpa mengubah desain visual yang telah lulus acceptance dan visual regression.
 
+## Status implementasi
+
+### Slice 1 — authoritative read dan master write
+
+Status: **LULUS CI**
+
+Selesai:
+
+- hydration customer, product, dan Bon dari seluruh halaman API;
+- session-aware loading, retry, stale-session reset, dan network failure state;
+- mapper DTO ke model UI, termasuk snapshot produk/pelanggan historis;
+- pemisahan ID database dari kode tampilan;
+- create, edit, dan soft-delete customer melalui API;
+- create, edit, dan soft-delete product melalui API;
+- settlement multi-Bon dan cancellation pembayaran melalui API;
+- localStorage hanya digunakan pada mode demo, bukan sebagai source of truth saat `VITE_USE_API=true`;
+- unit test mapper frontend dan integration test payload backend;
+- dependency audit, typecheck, lint, backend tests, frontend tests, production build, dan browser regression lulus pada workflow run 94.
+
+Masih dikerjakan sebelum PR keluar dari draft:
+
+- refresh authoritative setelah create Bon;
+- edit dan soft-delete Bon melalui API pada seluruh jalur UI;
+- Void Bon melalui API dengan otorisasi Owner;
+- hydration riwayat settlement dan bonus yang lebih lengkap;
+- report/export yang langsung menggunakan respons backend;
+- Playwright E2E dengan PostgreSQL dan API nyata.
+
 ## Urutan pengerjaan
 
 ### 1. Backend readiness
