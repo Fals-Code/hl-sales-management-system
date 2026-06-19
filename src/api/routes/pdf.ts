@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { renderBonPdf } from "../../services/pdfBonService";
 import { renderReportPdf, type PdfReportInput } from "../../services/pdfReportService";
+import type { ReportFilters } from "../../services/reportingService";
 import type { ApiContext } from "../types";
 import { reportFilterSchema } from "../schemas/common";
 import { toReportFilters } from "./reports";
@@ -86,13 +87,13 @@ export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
       }
     });
     const buffer = await renderBonPdf(bon);
-    return sendPdfBuffer(reply, buffer, `bon-${slug(bon.bonNumber)}.pdf`);
+    return sendPdfBuffer(reply, buffer, `${slug(bon.bonNumber)}.pdf`);
   });
 }
 
 async function sendReportPdf(reply: PdfReply, input: PdfReportInput) {
   const buffer = await renderReportPdf(input);
-  return sendPdfBuffer(reply, buffer, `${slug(input.title)}.pdf`);
+  return sendPdfBuffer(reply, buffer, `${slug(input.title)}${reportFilenameSuffix(input.filters)}.pdf`);
 }
 
 function sendPdfBuffer(reply: PdfReply, buffer: Buffer, filename: string) {
@@ -100,6 +101,13 @@ function sendPdfBuffer(reply: PdfReply, buffer: Buffer, filename: string) {
   reply.header("Content-Disposition", `attachment; filename="${filename}"`);
   reply.header("Content-Length", String(buffer.length));
   return reply.send(buffer);
+}
+
+function reportFilenameSuffix(filters?: ReportFilters) {
+  const parts: string[] = [];
+  if (filters?.year && filters.month) parts.push(`${filters.year}-${String(filters.month).padStart(2, "0")}`);
+  if (filters?.productType) parts.push(filters.productType.toLowerCase());
+  return parts.length ? `-${parts.join("-")}` : "";
 }
 
 type PdfReply = {
