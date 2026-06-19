@@ -94,7 +94,7 @@ export function mapProduct(product: ApiProductDto): StoredProduct {
     id: product.sku?.trim() || displayId("PRD", product.id),
     name: product.name,
     type: product.type,
-    stock: 0,
+    stock: (product as ApiProductDto & { stock?: number }).stock ?? 0,
     costPrice: product.costPrice,
     basePrice: product.basePrice,
     active: !product.deletedAt
