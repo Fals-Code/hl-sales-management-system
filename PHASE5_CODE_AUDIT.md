@@ -1,92 +1,144 @@
 # Phase 5 Code and Data Audit
 
-## Verdict
+## Final Status
 
-Phase 5 dapat ditutup sebagai selesai secara implementasi dan dilanjutkan ke Phase 6. Frontend dan backend telah terhubung, data nyata dipersistenkan, dan alur bisnis utama tersedia dari aplikasi. Status ini belum berarti production-ready karena UAT, konfigurasi production, backup, dan handover tetap termasuk Phase 6.
+**PHASE 5 — CLOSED**
 
-## Matriks audit
+Closed on 20 June 2026 after the latest notification, PDF, data-hydration, and E2E fixes passed the repository verification gates.
 
-| Area | Status | Bukti |
+Phase 5 is complete at the implementation and integration level. The frontend and backend are connected, authoritative data is persisted and reloaded, the main business flows are available through the application, and the latest CI plus browser E2E checks are green.
+
+This status does not mean the application is already production-ready. UAT, production configuration, backup, deployment, monitoring, documentation, and handover remain Phase 6 work.
+
+## Closure Evidence
+
+Final verified commit before closure documentation:
+
+- `05c562989380a6ac8e8bb78f65f3266ec52f32e6`
+- Commit message: `test: wait for generated Bon numbers in E2E flow`
+
+GitHub Actions results:
+
+- `Verify POS and PDF` run **#61**: **SUCCESS**
+- `E2E POS Flow` run **#50**: **SUCCESS**
+
+The verification workflow passed:
+
+- backend dependency installation;
+- Prisma client generation;
+- backend TypeScript build;
+- complete backend test suite;
+- sample Bon PDF generation;
+- frontend dependency installation;
+- frontend production build;
+- frontend unit tests.
+
+The E2E workflow passed the real API browser flow covering:
+
+- login;
+- customer create and edit;
+- product create and edit;
+- Bon creation;
+- PDF download;
+- reload persistence;
+- Bon edit;
+- settlement;
+- payment cancellation;
+- settlement retry;
+- Void;
+- Bonus Bon;
+- soft-delete;
+- reporting;
+- report PDF download;
+- logout and session return to login.
+
+## Audit Matrix
+
+| Area | Status | Evidence |
 |---|---|---|
-| Authentication | Lulus | Login, cookie session, current user, logout, protected route, dan session expiry tersedia. |
-| Customer | Lulus | Daftar, tambah, edit, soft-delete, diskon LM/BR, threshold, dan history memakai API. |
-| Product | Lulus | Daftar, tambah, edit, soft-delete, harga, tipe, dan stok memakai API/bootstrap. |
-| Transaction | Lulus | Preview server, create, detail, edit Piutang, soft-delete, snapshot, dan nomor unik tersedia. |
-| Settlement | Lulus | Pelunasan, tanggal pelunasan, pembatalan, refresh data, dan PIN Owner tersedia. |
-| Bonus | Lulus | Availability backend, Bonus Bon API, ledger, dan sisa unit dimuat melalui bootstrap. |
-| Reporting | Lulus | Filter periode, cash basis, LM/BR, dan PDF memakai endpoint backend. |
-| Error handling | Lulus | Validation, duplicate, unauthorized, PIN, timeout, network, dan server error ditangani. |
-| Notification foundation | Lulus tahap frontend | Center, toast, unread badge, filter, persistence, dedupe, dan event kondisi tersedia. |
+| Authentication | Passed | Login, cookie session, current user, logout, protected routes, and session expiry are integrated. |
+| Customer | Passed | List, create, update, soft-delete, LM/BR discounts, threshold, and history use API data. |
+| Product | Passed | List, create, update, soft-delete, prices, type, and stock use API/bootstrap data. |
+| Transaction | Passed | Server preview, create, detail, Piutang edit, soft-delete, snapshots, and unique Bon numbers are integrated. |
+| Settlement | Passed | Settlement, settlement date, payment cancellation, refresh, and Owner PIN authorization are integrated. |
+| Bonus | Passed | Backend availability, Bonus Bon API, ledger, and remaining units are loaded through bootstrap. |
+| Reporting | Passed | Period filters, cash-basis reporting, LM/BR scope, and PDF use backend endpoints. |
+| Error lifecycle | Passed | Validation, duplicate, unauthorized, PIN, timeout, network, and server errors are handled. |
+| Notification foundation | Passed | Center, toast, unread badge, filters, local persistence, deduplication, and condition events are available. |
+| PDF output | Passed | Bon and report PDF regression tests pass, including one-page compact layout checks. |
+| CI and E2E | Passed | Verify run #61 and E2E run #50 completed successfully. |
 
-## Bukti pengujian
+## Findings and Resolution
 
-Hasil lokal terakhir sebelum perubahan notification foundation:
+### F5-01 — Notification panel was not general
 
-- frontend build lulus;
-- frontend test 9 dari 9 lulus;
-- backend build lulus;
-- backend test 61 dari 61 lulus;
-- test PDF report dan PDF Bon lulus;
-- authentication integration test lulus.
+Before the fix, the topbar only counted Piutang Bons and bonus-eligible customers. It had no read/dismiss state, categories, deduplication, toast queue, or persistence.
 
-Repository juga memiliki test Phase 5 data hydration, lifecycle Bon melalui HTTP, browser E2E dengan API nyata, concurrency, reporting, bonus, payment allocation, migration, CORS, dan PDF.
+Resolution: replaced with the general notification foundation defined in `frontend/GENERAL_NOTIFICATION_SYSTEM.md`.
 
-## Temuan dan tindakan
+Status: resolved.
 
-### F5-01 - Notification panel belum general
+### F5-02 — Frontend stock contract was implicit
 
-Sebelum perbaikan, topbar hanya menghitung Bon Piutang dan pelanggan eligible bonus. Tidak ada read/dismiss, kategori, dedupe, toast, atau persistence. Panel telah diganti dengan general notification store sesuai dokumen notification system.
+Bootstrap returned stock, but the frontend DTO did not declare it explicitly.
 
-Status: diperbaiki.
+Resolution: the API product contract now recognizes stock while retaining a safe compatibility fallback.
 
-### F5-02 - Kontrak stok frontend tidak eksplisit
+Status: resolved.
 
-Bootstrap mengirim stock, tetapi tipe DTO frontend tidak mendeklarasikannya. Kontrak sekarang mengenali stock dengan fallback kompatibel.
+### F5-03 — Bon detail could fall back to demo catalog data
 
-Status: diperbaiki.
+The previous calculator could resolve customers and products from mock data even when the Bon came from the API.
 
-### F5-03 - Detail Bon berisiko memakai demo catalog
+Resolution: Bon detail now uses hydrated customer and product data plus immutable transaction snapshots through `calculateStoredBon`.
 
-Calculator lama mencari customer dan produk dari mock module. Detail Bon sekarang memakai hydrated customer, product, dan snapshot transaksi melalui calculateStoredBon.
+Status: resolved.
 
-Status: diperbaiki.
+### F5-04 — PDF report created extra pages
 
-### F5-04 - PDF report pernah menghasilkan halaman tambahan
+The footer position could overflow the printable area and create blank pages.
 
-Posisi footer diperbaiki dan regression test jumlah halaman ditambahkan.
+Resolution: footer placement was corrected and regression tests were added for report and Bon PDF page count.
 
-Status: diperbaiki.
+Status: resolved.
 
-### F5-05 - Notification backend persistence belum tersedia
+### F5-05 — E2E read generated Bon number too early
 
-Tabel Notification, endpoint read/dismiss, SSE, serta channel eksternal merupakan tahap lanjutan pada dokumen notification system dan bukan output wajib Phase 5.
+The browser test read the Bon number field before the asynchronous generated value was available, producing an empty locator expectation even though the Bon was successfully created.
 
-Status: bukan blocker Phase 5. Masuk backlog Phase 6 atau pasca-UAT bila Owner memerlukan sinkronisasi lintas browser.
+Resolution: the E2E helper now waits for a valid `BON-YYYYMMDD-NNN` or `BONUS-YYYYMMDD-NNN` value before continuing.
 
-## Notification design yang diterapkan
+Status: resolved and verified by E2E run #50.
 
-- sumber data dari hasil bootstrap;
-- low stock lima unit atau kurang;
-- out of stock nol unit;
-- overdue receivable tiga puluh hari;
-- bonus dari availability backend;
-- negative profit dari snapshot Bon;
-- event Void, session expiry, timeout, dan network error;
-- dedupe berdasarkan eventKey dan entityId;
-- read/dismiss disimpan lokal;
-- critical notification harus dibaca sebelum ditutup;
-- kondisi yang selesai hilang otomatis.
+### F5-06 — Notification backend persistence is not implemented
 
-## Gate penutupan Phase 5
+A backend `Notification` table, read/dismiss endpoints, SSE, and external notification channels are still absent.
 
-Setelah menarik commit terbaru, jalankan build dan test frontend serta backend. Phase 5 dapat ditandai Closed jika semuanya lulus dan smoke test login, CRUD, Bon, settlement, cancellation, Void, bonus, report, PDF, dan notification center berhasil.
+Status: accepted backlog, not a Phase 5 blocker. The current application is internal and single-user, so local persistence is sufficient for the Phase 5 scope. Backend persistence can be added in Phase 6 or after UAT if cross-browser or cross-device history is required.
 
-## Phase 6 yang tetap wajib
+## Notification Design in the Closed Phase 5 Scope
 
-- UAT client;
-- visual dan responsive testing;
-- E2E pada database bersih;
-- konfigurasi production;
-- backup dan restore drill;
-- logging dan monitoring;
-- dokumentasi penggunaan dan handover.
+- notification source uses authoritative bootstrap state;
+- low stock is five units or fewer;
+- out of stock is zero units;
+- overdue receivable starts at thirty days;
+- bonus eligibility uses backend availability;
+- negative profit uses transaction snapshots;
+- Void, payment cancellation, session expiry, timeout, and network errors publish events;
+- deduplication uses `eventKey + entityId`;
+- read and dismiss state is stored locally;
+- critical notifications must be read before dismissal;
+- resolved conditions disappear automatically and can reappear if the condition returns.
+
+## Phase 6 Entry Criteria
+
+Phase 6 can start from this branch state. Required work remains:
+
+- client UAT;
+- visual and responsive testing on target devices;
+- production environment and secret configuration;
+- database backup and restore drill;
+- deployment pipeline and release procedure;
+- logging and monitoring;
+- user guide and operational documentation;
+- handover and final acceptance.
