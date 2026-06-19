@@ -21,6 +21,7 @@ import "./visual-hierarchy-refinement.css";
 import "./settings-hierarchy-refinement.css";
 import "./selective-card-system.css";
 import "./dashboard-refinement.css";
+import "./report-preview-refinement.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
