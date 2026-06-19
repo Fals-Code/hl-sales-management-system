@@ -11,6 +11,12 @@ async function waitForApp(page: Page) {
   await expect(page.locator("#main-content")).toBeVisible();
 }
 
+async function closeBonSuccess(dialog: ReturnType<Page["getByRole"]>, bonNumber: string) {
+  await expect(dialog.getByRole("heading", { name: bonNumber })).toBeVisible();
+  await dialog.getByRole("button", { name: "Selesai" }).click();
+  await expect(dialog).toBeHidden();
+}
+
 async function createNormalBon(page: Page, description: string) {
   await page.goto("/#/dashboard");
   await waitForApp(page);
@@ -19,7 +25,7 @@ async function createNormalBon(page: Page, description: string) {
   const bonNumber = await dialog.getByLabel("Nomor Bon *").inputValue();
   await dialog.getByLabel("Deskripsi").fill(description);
   await dialog.getByRole("button", { name: "Simpan Bon" }).click();
-  await expect(dialog).toBeHidden();
+  await closeBonSuccess(dialog, bonNumber);
   await waitForApp(page);
   await expect(page.getByText(bonNumber, { exact: true }).first()).toBeVisible();
   return bonNumber;
@@ -149,7 +155,7 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   const bonusNumber = await bonusDialog.getByLabel("Nomor Bon *").inputValue();
   expect(bonusNumber).toMatch(/^BONUS-/);
   await bonusDialog.getByRole("button", { name: "Simpan Bon" }).click();
-  await expect(bonusDialog).toBeHidden();
+  await closeBonSuccess(bonusDialog, bonusNumber);
   await waitForApp(page);
   await page.goto("/#/bonus");
   await waitForApp(page);
