@@ -48,7 +48,7 @@ export type ApiProductDto = {
   sku: string | null;
   name: string;
   type: ApiProductType;
-  stock: number;
+  stock?: number;
   costPrice: number;
   basePrice: number;
   deletedAt: string | null;
