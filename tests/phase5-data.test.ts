@@ -32,7 +32,7 @@ afterAll(async () => {
 
 describe("Phase 5 data hydration", () => {
   it("loads master data, transaction snapshots, and bonus availability", async () => {
-    const { customer, lm } = await createFixture(ctx, 100_000);
+    const { customer, lm } = await createFixture(ctx, 10_000);
     const bon = await ctx.transactions.createBon({
       bonNumber: "BON-20260619-201",
       customerId: customer.id,
@@ -53,8 +53,7 @@ describe("Phase 5 data hydration", () => {
   });
 
   it("protects and serves the authoritative bootstrap endpoint", async () => {
-    await createUser(ctx.db);
-    const { customer, lm } = await createFixture(ctx, 100_000);
+    const { customer, lm } = await createFixture(ctx, 10_000);
     const bon = await ctx.transactions.createBon({
       bonNumber: "BON-20260619-301",
       customerId: customer.id,
