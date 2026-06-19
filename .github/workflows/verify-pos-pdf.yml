@@ -51,7 +51,22 @@ jobs:
         run: npm run build
 
       - name: Run backend tests sequentially
-        run: npm test -- --maxWorkers=1 --no-file-parallelism
+        id: backend_tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm test -- --maxWorkers=1 --no-file-parallelism 2>&1 | tee backend-test.log
+
+      - name: Upload backend test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-log
+          path: backend-test.log
+
+      - name: Fail when backend tests fail
+        if: steps.backend_tests.outcome == 'failure'
+        run: exit 1
 
   frontend:
     runs-on: ubuntu-latest
@@ -71,9 +86,25 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build frontend
+        id: frontend_build
+        continue-on-error: true
         working-directory: frontend
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee ../frontend-build.log
+
+      - name: Upload frontend build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-log
+          path: frontend-build.log
 
       - name: Run frontend tests
+        if: steps.frontend_build.outcome == 'success'
         working-directory: frontend
         run: npm test
+
+      - name: Fail when frontend build fails
+        if: steps.frontend_build.outcome == 'failure'
+        run: exit 1
