@@ -80,3 +80,43 @@ Dipakai untuk hasil aksi langsung:
 4. Laba negatif menunggu otorisasi.
 5. Pembayaran dibatalkan atau Bon di-Void.
 6. Koneksi backend dan sesi pengguna bermasalah.
+
+## Keputusan implementasi saat ini
+
+Aplikasi HL adalah aplikasi internal single-user. Untuk menjaga Phase 5 tetap stabil, implementasi awal memakai **frontend foundation dengan local persistence** dan notifikasi kondisi dihitung dari data bootstrap yang authoritative. Pendekatan ini dipilih agar pusat notifikasi langsung berguna tanpa menambah tabel serta coupling transaksi baru menjelang UAT.
+
+Konfigurasi awal:
+
+- umur Piutang: 30 hari;
+- stok rendah: 5 unit atau kurang;
+- stok habis: 0 unit;
+- kondisi bonus memakai saldo bonus hasil backend;
+- kondisi laba negatif memakai snapshot transaksi;
+- kegagalan jaringan dan sesi diterbitkan dari API client;
+- notifikasi kondisi otomatis hilang ketika kondisi sumber selesai;
+- status dibaca dan ditutup disimpan pada `localStorage`.
+
+## Status implementasi
+
+### Selesai
+
+- kontrak `AppNotification` terpusat;
+- notification store dan toast queue;
+- local persistence untuk status read/dismiss;
+- deduplikasi `eventKey + entityId`;
+- badge jumlah belum dibaca;
+- filter Semua, Belum dibaca, dan kategori;
+- Tandai semua dibaca;
+- navigasi ke Bon, produk, bonus, atau modul terkait;
+- proteksi notifikasi kritis agar dibaca sebelum ditutup;
+- event stok rendah/habis, Piutang berumur, bonus tersedia, laba negatif, Void, session expired, timeout, dan network error;
+- unit test derivasi notifikasi.
+
+### Ditunda ke tahap lanjutan
+
+- tabel `Notification` di backend;
+- endpoint list/read/dismiss;
+- SSE;
+- email atau WhatsApp.
+
+Backend persistence bukan syarat output Phase 5 pada dokumen fase proyek. Fitur tersebut dapat dikerjakan pada Phase 6 atau setelah UAT apabila Owner membutuhkan riwayat notifikasi lintas browser/perangkat.
