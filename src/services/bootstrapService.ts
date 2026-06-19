@@ -41,10 +41,15 @@ export class BootstrapService {
       })
     );
 
+    const productsWithStock = await Promise.all(products.map(async (product) => {
+      const rows = await this.db.$queryRaw<Array<{ stock: number }>>`SELECT "stock" FROM "Product" WHERE "id" = ${product.id}`;
+      return { ...product, stock: rows[0]?.stock ?? 0 };
+    }));
+
     return {
       generatedAt: new Date(),
       customers: customersWithAvailability,
-      products,
+      products: productsWithStock,
       bons
     };
   }
