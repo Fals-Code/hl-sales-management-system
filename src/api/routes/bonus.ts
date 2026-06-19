@@ -1,15 +1,23 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { BON_NUMBER_PATTERN, normalizeBonNumber } from "../../domain/bonNumber";
 import { toSafeMoneyNumber } from "../../domain/money";
 import type { ApiContext, AuthenticatedRequest } from "../types";
-import { itemKindSchema, quantitySchema } from "../schemas/common";
+import { quantitySchema } from "../schemas/common";
 import { send } from "./helpers";
+
+const dateInputSchema = z.string().refine((value) => {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : new Date(value);
+  return !Number.isNaN(date.getTime());
+}, "Tanggal Bon tidak valid.");
 
 const bonusBonSchema = z
   .object({
+    bonNumber: z.string().trim().regex(BON_NUMBER_PATTERN, "Format Nomor Bon tidak valid."),
     customerId: z.string().min(1),
-    items: z.array(z.object({ productId: z.string().min(1), quantity: quantitySchema, kind: itemKindSchema.default("BONUS") }).strict()).min(1),
-    bonDate: z.string().datetime().optional()
+    description: z.string().trim().max(1000).optional(),
+    items: z.array(z.object({ productId: z.string().min(1), quantity: quantitySchema, kind: z.literal("BONUS").optional() }).strict()).min(1),
+    bonDate: dateInputSchema.optional()
   })
   .strict();
 
@@ -29,10 +37,12 @@ export async function registerBonusRoutes(app: FastifyInstance, ctx: ApiContext)
     return send(
       reply,
       await ctx.transactions.createBon({
+        bonNumber: normalizeBonNumber(body.bonNumber),
         customerId: body.customerId,
+        description: body.description,
         items: body.items.map((item) => ({ ...item, kind: "BONUS" })),
         shippingCost: 0,
-        bonDate: body.bonDate ? new Date(body.bonDate) : undefined,
+        bonDate: body.bonDate ? (/^\d{4}-\d{2}-\d{2}$/.test(body.bonDate) ? new Date(`${body.bonDate}T00:00:00.000Z`) : new Date(body.bonDate)) : undefined,
         userId: (request as AuthenticatedRequest).userId
       }),
       201
