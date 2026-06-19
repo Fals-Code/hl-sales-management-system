@@ -73,7 +73,7 @@ export function ReportPreview({ open, periodLabel, customerName = "Semua pelangg
         <div><dt>Jumlah transaksi</dt><dd>{rows.length} Bon</dd></div>
       </dl>
 
-      <div className="acceptance-pdf-metric-grid">
+      <div className="acceptance-pdf-metric-grid report-pdf-metric-grid">
         <PdfMetric label={`Omzet Lunas${scope === "overall" ? "" : ` ${scope}`}`} value={formatCurrency(totalOmzet)} />
         <PdfMetric label={`Laba HL${scope === "overall" ? "" : ` ${scope}`}`} value={formatCurrency(totalProfit)} />
         <PdfMetric label={scope === "overall" ? "Sudah Dibayar" : "Nilai Lunas Cakupan"} value={formatCurrency(totalPaid)} helper={scope === "overall" ? "Termasuk ongkir" : "Ongkir tidak dialokasikan"} />
