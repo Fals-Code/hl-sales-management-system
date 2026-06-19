@@ -4,7 +4,8 @@ import { AuthService } from "./authService";
 import { BonusService } from "./bonusService";
 import { AUTHORIZATION_TYPE, BonItemKindValue, ITEM_KIND } from "../domain/constants";
 import { calculateBon } from "../domain/calculationEngine";
-import { AuthorizationError, BusinessError } from "../domain/errors";
+import { assertBonNumber } from "../domain/bonNumber";
+import { AuthorizationError, BusinessError, DuplicateValueError } from "../domain/errors";
 import { assertNonNegativeMoney, assertProductType } from "../domain/validation";
 import { toDbMoney, toSafeMoneyNumber } from "../domain/money";
 
@@ -15,10 +16,12 @@ export type BonItemInput = {
 };
 
 export type SaveBonInput = {
+  bonNumber?: string;
   customerId: string;
   items: BonItemInput[];
   shippingCost?: number;
   bonDate?: Date;
+  description?: string;
   userId?: string;
   ownerPin?: string;
   negativeProfitReason?: string;
@@ -28,6 +31,7 @@ export class TransactionService {
   constructor(private readonly db: PrismaClient, private readonly auth: AuthService) {}
 
   async previewBon(input: SaveBonInput) {
+    if (input.bonNumber) assertBonNumber(input.bonNumber);
     const calculation = await buildCalculation(this.db, input);
     const bonusUnits = countBonusUnits(input.items);
     const bonusAvailability = bonusUnits > 0 ? await new BonusService(this.db).getAvailability(input.customerId) : undefined;
@@ -41,6 +45,7 @@ export class TransactionService {
 
   async createBon(input: SaveBonInput) {
     return this.db.$transaction(async (tx) => {
+      const bonNumber = await resolveBonNumber(tx, input.bonNumber);
       const calculation = await buildCalculation(tx, input);
       const bonusUnits = countBonusUnits(input.items);
       if (bonusUnits > 0) {
@@ -56,9 +61,10 @@ export class TransactionService {
 
       const bon = await tx.bon.create({
         data: {
-          bonNumber: await uniqueBonNumber(tx),
+          bonNumber,
           customerId: input.customerId,
           bonDate: input.bonDate ?? new Date(),
+          description: normalizeDescription(input.description),
           shippingCost: toDbMoney(calculation.shippingCost, "shippingCost"),
           totalBeforeDiscount: toDbMoney(calculation.totalBeforeDiscount, "totalBeforeDiscount"),
           totalAfterDiscount: toDbMoney(calculation.totalAfterDiscount, "totalAfterDiscount"),
@@ -92,6 +98,8 @@ export class TransactionService {
       if (!existing || existing.deletedAt) throw new BusinessError("Bon not found.");
       if (existing.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be edited.");
 
+      const bonNumber = await resolveBonNumber(tx, input.bonNumber ?? existing.bonNumber, bonId);
+
       await new BonusService(tx).reverseBonUsage({
         customerId: existing.customerId,
         bonId,
@@ -116,8 +124,10 @@ export class TransactionService {
       await tx.bon.update({
         where: { id: bonId },
         data: {
+          bonNumber,
           customerId: input.customerId,
           bonDate: input.bonDate,
+          description: normalizeDescription(input.description),
           shippingCost: toDbMoney(calculation.shippingCost, "shippingCost"),
           totalBeforeDiscount: toDbMoney(calculation.totalBeforeDiscount, "totalBeforeDiscount"),
           totalAfterDiscount: toDbMoney(calculation.totalAfterDiscount, "totalAfterDiscount"),
@@ -241,11 +251,27 @@ async function writeItems(tx: Prisma.TransactionClient, bonId: string, items: Re
   });
 }
 
+async function resolveBonNumber(tx: Prisma.TransactionClient, requested?: string, excludeId?: string) {
+  const value = requested ? assertBonNumber(requested) : await uniqueBonNumber(tx);
+  const existing = await tx.bon.findUnique({ where: { bonNumber: value }, select: { id: true } });
+  if (existing && existing.id !== excludeId) {
+    throw new DuplicateValueError(`Nomor Bon ${value} sudah digunakan.`);
+  }
+  return value;
+}
+
 async function uniqueBonNumber(tx: Prisma.TransactionClient) {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const value = `BON-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${randomBytes(4).toString("hex").toUpperCase()}`;
+  const compactDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const suffix = randomBytes(2).readUInt16BE(0) % 1000;
+    const value = `BON-${compactDate}-${String(suffix).padStart(3, "0")}`;
     const existing = await tx.bon.findUnique({ where: { bonNumber: value } });
     if (!existing) return value;
   }
   throw new BusinessError("Unable to generate unique Bon number.");
+}
+
+function normalizeDescription(value?: string) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
 }
