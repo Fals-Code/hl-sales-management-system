@@ -53,6 +53,22 @@
   text-overflow: ellipsis;
 }
 
+/* Five metrics use a balanced 3 + 2 layout instead of leaving one orphan card. */
+.report-pdf-metric-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.report-pdf-metric-grid > .acceptance-pdf-metric {
+  grid-column: span 2;
+  min-height: 86px;
+  align-content: center;
+}
+
+.report-pdf-metric-grid > .acceptance-pdf-metric:nth-last-child(-n + 2) {
+  grid-column: span 3;
+}
+
 .report-paper-note {
   margin: 0 0 18px;
   border-left: 4px solid #2f6f9f;
@@ -79,6 +95,21 @@
   white-space: normal !important;
 }
 
+@media (max-width: 900px) {
+  .report-pdf-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-pdf-metric-grid > .acceptance-pdf-metric,
+  .report-pdf-metric-grid > .acceptance-pdf-metric:nth-last-child(-n + 2) {
+    grid-column: span 1;
+  }
+
+  .report-pdf-metric-grid > .acceptance-pdf-metric:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
   .report-paper-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -96,13 +127,24 @@
     padding-left: 0;
   }
 
+  .report-pdf-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-pdf-metric-grid > .acceptance-pdf-metric,
+  .report-pdf-metric-grid > .acceptance-pdf-metric:nth-last-child(-n + 2),
+  .report-pdf-metric-grid > .acceptance-pdf-metric:last-child {
+    grid-column: 1;
+  }
+
   .report-paper-table {
     min-width: 720px;
   }
 }
 
 @media print {
-  .report-paper-meta {
+  .report-paper-meta,
+  .report-pdf-metric-grid {
     break-inside: avoid;
   }
 
