@@ -40,12 +40,15 @@ jobs:
       - name: Run backend tests
         id: backend_tests
         continue-on-error: true
-        run: npm test -- --reporter=json --outputFile=vitest-report.json
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee backend-test.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-test-report
-          path: vitest-report.json
+          path: backend-test.log
       - name: Enforce backend test result
         if: steps.backend_tests.outcome == 'failure'
         run: exit 1
@@ -65,12 +68,15 @@ jobs:
       - name: Run frontend tests
         id: frontend_tests
         continue-on-error: true
-        run: npm test -- --reporter=json --outputFile=frontend-vitest-report.json
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee frontend-test.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: frontend-test-report
-          path: frontend/frontend-vitest-report.json
+          path: frontend/frontend-test.log
       - name: Enforce frontend test result
         if: steps.frontend_tests.outcome == 'failure'
         run: exit 1
