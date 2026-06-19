@@ -21,6 +21,7 @@ import { authHook } from "./middleware/auth";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerBonRoutes } from "./routes/bons";
 import { registerBonusRoutes } from "./routes/bonus";
+import { registerBootstrapRoutes } from "./routes/bootstrap";
 import { registerCustomerRoutes } from "./routes/customers";
 import { registerPdfRoutes } from "./routes/pdf";
 import { registerProductRoutes } from "./routes/products";
@@ -150,6 +151,7 @@ export async function buildApp(
   app.get("/favicon.ico", (_request, reply) => reply.status(204).send());
 
   registerAuthRoutes(app, ctx);
+  registerBootstrapRoutes(app, ctx);
   registerCustomerRoutes(app, ctx);
   registerProductRoutes(app, ctx);
   void registerBonRoutes(app, ctx);
@@ -163,6 +165,7 @@ export async function buildApp(
 
 function openApiTag(url: string) {
   if (url.includes("/auth/")) return "Authentication";
+  if (url.includes("/bootstrap")) return "Bootstrap";
   if (url.includes("/customers"))
     return url.includes("bonus") ? "Bonus" : "Customers";
   if (url.includes("/products")) return "Products";
