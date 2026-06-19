@@ -80,3 +80,7 @@ export const bonApi = {
   update: <T>(id: string, payload: unknown) => apiRequest<T>(`/api/v1/bons/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
   remove: <T>(id: string) => apiRequest<T>(`/api/v1/bons/${encodeURIComponent(id)}`, { method: "DELETE" })
 };
+
+export const bonusBonApi = {
+  create: <T>(payload: unknown) => apiRequest<T>("/api/v1/bonus-bons", { method: "POST", body: JSON.stringify(payload) })
+};
