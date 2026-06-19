@@ -1,0 +1,118 @@
+/* Make selected report filters explicit in the preview and printed PDF. */
+
+.report-paper-title {
+  margin-bottom: 16px;
+}
+
+.report-paper-title h2 {
+  max-width: 680px;
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+  line-height: 1.2;
+}
+
+.report-paper-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 0 20px;
+  border-top: 1px solid #dce3e8;
+  border-bottom: 1px solid #dce3e8;
+}
+
+.report-paper-meta > div {
+  min-width: 0;
+  border-right: 1px solid #dce3e8;
+  padding: 11px 12px;
+}
+
+.report-paper-meta > div:first-child {
+  padding-left: 0;
+}
+
+.report-paper-meta > div:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.report-paper-meta dt {
+  margin-bottom: 4px;
+  color: #68798a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.report-paper-meta dd {
+  overflow: hidden;
+  margin: 0;
+  color: #17212b;
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.report-paper-note {
+  margin: 0 0 18px;
+  border-left: 4px solid #2f6f9f;
+  padding: 10px 12px;
+  background: #f2f7fa;
+  color: #43576a;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.report-paper-table th,
+.report-paper-table td {
+  white-space: nowrap;
+}
+
+.report-paper-table td:nth-child(2) {
+  font-weight: 800;
+}
+
+.report-paper-empty {
+  padding: 28px 12px !important;
+  color: #6d7b89;
+  text-align: center !important;
+  white-space: normal !important;
+}
+
+@media (max-width: 760px) {
+  .report-paper-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-paper-meta > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .report-paper-meta > div:nth-child(-n + 2) {
+    border-bottom: 1px solid #dce3e8;
+  }
+
+  .report-paper-meta > div:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .report-paper-table {
+    min-width: 720px;
+  }
+}
+
+@media print {
+  .report-paper-meta {
+    break-inside: avoid;
+  }
+
+  .report-paper-note {
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-paper-table {
+    font-size: 9pt;
+  }
+}
