@@ -144,7 +144,7 @@ export default function AppV2() {
       <AppSidebar activePage={route.page} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} comfortableMode={comfortableMode} onChangePage={changePage} onCloseMobile={() => setMobileMenuOpen(false)} onToggleComfort={() => setComfortableMode((value) => !value)} onLogout={() => setLogoutOpen(true)} />
 
       <div className="main-area">
-        <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} notificationCount={receivableCount + eligibleBonusCount} receivableCount={receivableCount} eligibleBonusCount={eligibleBonusCount} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onGoReceivables={() => changePage("receivables")} onGoBonus={() => changePage("bonus")} />
+        <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} notificationCount={receivableCount + eligibleBonusCount} receivableCount={receivableCount} eligibleBonusCount={eligibleBonusCount} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onGoReceivables={() => changePage("receivables")} onGoBonus={() => changePage("bonus")} onOpenSettings={() => changePage("settings")} onLogout={() => setLogoutOpen(true)} />
 
         <main className="page-content" id="main-content" tabIndex={-1} aria-busy={pageLoading}>
           <AppErrorBoundary>
