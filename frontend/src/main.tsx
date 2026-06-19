@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./AppV3";
 import { AppStoreProvider } from "./store";
+import { NotificationProvider } from "./notification-store";
 import "./styles.css";
 import "./login.css";
 import "./polish.css";
@@ -28,11 +29,14 @@ import "./phase5-readiness.css";
 import "./bon-create-page.css";
 import "./pos-page-extras.css";
 import "./pdf-document-preview.css";
+import "./notification-system.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AppStoreProvider>
-      <App />
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
     </AppStoreProvider>
   </React.StrictMode>
 );
