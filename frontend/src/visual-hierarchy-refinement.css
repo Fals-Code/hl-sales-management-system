@@ -1,0 +1,514 @@
+/* Reduce the card-everywhere look. Main pages now use sections, dividers, tables, and compact bands. */
+
+.main-area {
+  background: #ffffff;
+}
+
+.page-content {
+  width: min(1540px, 100%);
+  min-height: calc(100dvh - var(--topbar-height));
+  padding: clamp(18px, 2.1vw, 30px);
+  background: #ffffff;
+}
+
+.acceptance-page {
+  gap: 14px;
+}
+
+.acceptance-page-header,
+.acceptance-customer-hero,
+.acceptance-bon-hero {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 13px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0 0 15px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.acceptance-page-header h2,
+.acceptance-customer-hero h2,
+.acceptance-bon-hero h2 {
+  margin-bottom: 3px;
+}
+
+.acceptance-page-header p,
+.acceptance-customer-hero p,
+.acceptance-bon-hero p {
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.acceptance-page-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+}
+
+.acceptance-toolbar,
+.acceptance-filter-card {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0 0 14px;
+  background: transparent;
+}
+
+.acceptance-card,
+.panel {
+  border: 0;
+  border-radius: 0;
+  padding: 16px 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.acceptance-card {
+  border-top: 1px solid var(--border);
+}
+
+.acceptance-card-heading,
+.section-heading {
+  margin-bottom: 12px;
+}
+
+.acceptance-card-heading h3,
+.section-heading h2 {
+  margin-bottom: 0;
+}
+
+.acceptance-detail-layout,
+.acceptance-product-layout,
+.acceptance-review-layout,
+.dashboard-columns {
+  gap: 24px;
+}
+
+.acceptance-detail-layout > aside,
+.dashboard-columns > aside {
+  border-left: 1px solid var(--border);
+  padding-left: 24px;
+}
+
+.welcome-panel {
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 4px 0 18px;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.welcome-panel h2 {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+.welcome-panel p,
+.welcome-panel .eyebrow {
+  color: var(--muted);
+}
+
+.welcome-panel .button--primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.summary-grid,
+.acceptance-stat-grid {
+  display: grid;
+  gap: 0;
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 0;
+}
+
+.summary-card,
+.acceptance-stat {
+  min-height: 104px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  padding: 14px 18px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.summary-card:last-child,
+.acceptance-stat:last-child {
+  border-right: 0;
+}
+
+.summary-card-icon,
+.acceptance-stat > span {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+}
+
+.summary-card > div:nth-child(2) > strong {
+  margin-top: 12px;
+  font-size: clamp(1.28rem, 1.8vw, 1.72rem);
+}
+
+.summary-card > div:nth-child(2) > small {
+  padding-top: 8px;
+}
+
+.acceptance-stat strong {
+  margin: 4px 0;
+}
+
+.quick-actions {
+  margin-top: 18px;
+}
+
+.quick-action-grid {
+  gap: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-action-card {
+  min-height: 78px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  padding: 13px 15px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.quick-action-card:last-child {
+  border-right: 0;
+}
+
+.quick-action-card:hover {
+  border-color: var(--border);
+  background: #f4f7f9;
+  box-shadow: none;
+}
+
+.quick-action-icon,
+.attention-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.dashboard-columns {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.dashboard-columns > .panel {
+  padding: 0;
+}
+
+.attention-item {
+  margin: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 8px;
+  background: transparent;
+}
+
+.attention-item:last-child {
+  border-bottom: 0;
+}
+
+.attention-item:hover {
+  background: #f5f7f9;
+}
+
+.attention-item--warning,
+.attention-item--success,
+.attention-item--danger {
+  background: transparent;
+}
+
+.acceptance-customer-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  border-top: 1px solid var(--border);
+}
+
+.acceptance-customer-card {
+  min-height: 112px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 14px 4px;
+  background: transparent;
+}
+
+.acceptance-customer-card:hover {
+  background: #f6f8fa;
+}
+
+.acceptance-product-list,
+.acceptance-bon-list,
+.settlement-selection-list,
+.paid-bon-list,
+.bonus-eligible-list,
+.bonus-bon-history {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+.acceptance-product-card,
+.acceptance-bon-row,
+.paid-bon-row,
+.bonus-eligible-row,
+.bonus-bon-history article,
+.settlement-selection-card {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.acceptance-product-card {
+  min-height: 104px;
+  padding: 14px 4px;
+}
+
+.acceptance-bon-row,
+.paid-bon-row,
+.bonus-eligible-row,
+.bonus-bon-history article {
+  min-height: 66px;
+  padding: 11px 4px;
+}
+
+.acceptance-product-card:hover,
+.acceptance-bon-row:hover,
+.bonus-eligible-row:hover {
+  background: #f6f8fa;
+}
+
+.acceptance-product-facts {
+  gap: 0;
+  margin-top: 9px;
+}
+
+.acceptance-product-facts span {
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+  padding: 5px 12px;
+  background: transparent;
+}
+
+.acceptance-product-facts span:first-child {
+  padding-left: 0;
+}
+
+.acceptance-product-facts span:last-child {
+  border-right: 0;
+}
+
+.discount-summary,
+.report-breakdown > div,
+.bonus-log-summary,
+.bonus-big-number {
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 11px 0;
+  background: transparent;
+}
+
+.discount-summary {
+  margin-bottom: 0;
+}
+
+.acceptance-empty,
+.acceptance-inline-empty {
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 24px 12px;
+  background: transparent;
+}
+
+.acceptance-empty {
+  min-height: 220px;
+}
+
+.acceptance-inline-empty {
+  min-height: 120px;
+}
+
+.receivable-acceptance-hero {
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.customer-type-breakdown,
+.settlement-live-totals {
+  gap: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.customer-type-breakdown > div,
+.settlement-live-totals > div {
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 16px;
+  background: transparent;
+}
+
+.customer-type-breakdown > div:last-child,
+.settlement-live-totals > div:last-child {
+  border-right: 0;
+}
+
+.acceptance-report-wrap,
+.acceptance-list-wrap {
+  border-top: 1px solid var(--border);
+}
+
+.acceptance-report-table th,
+.acceptance-bon-table th {
+  background: #f2f5f7;
+}
+
+.acceptance-report-table td,
+.acceptance-bon-table td {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+@media (max-width: 960px) {
+  .acceptance-detail-layout > aside,
+  .dashboard-columns > aside {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-content {
+    padding: 16px 14px 24px;
+  }
+
+  .acceptance-page {
+    gap: 12px;
+  }
+
+  .acceptance-page-header,
+  .acceptance-customer-hero,
+  .acceptance-bon-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-bottom: 13px;
+  }
+
+  .acceptance-page-header > .button,
+  .acceptance-customer-hero > .customer-hero-actions {
+    grid-column: 1 / -1;
+  }
+
+  .summary-grid,
+  .acceptance-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card,
+  .acceptance-stat {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-card:nth-child(even),
+  .acceptance-stat:nth-child(even) {
+    border-right: 0;
+  }
+
+  .summary-card:nth-last-child(-n + 2),
+  .acceptance-stat:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  .quick-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-action-card {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .quick-action-card:last-child {
+    border-bottom: 0;
+  }
+
+  .acceptance-customer-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .acceptance-product-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .acceptance-product-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .customer-type-breakdown,
+  .settlement-live-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-type-breakdown > div,
+  .settlement-live-totals > div {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .acceptance-bon-mobile-list article,
+  .acceptance-report-mobile article {
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 14px 2px;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .summary-grid,
+  .acceptance-stat-grid,
+  .customer-type-breakdown,
+  .settlement-live-totals {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card,
+  .acceptance-stat,
+  .customer-type-breakdown > div,
+  .settlement-live-totals > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-card:last-child,
+  .acceptance-stat:last-child,
+  .customer-type-breakdown > div:last-child,
+  .settlement-live-totals > div:last-child {
+    border-bottom: 0;
+  }
+}
