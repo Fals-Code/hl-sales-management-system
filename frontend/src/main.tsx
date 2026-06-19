@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./AppV2";
+import App from "./AppV3";
 import { AppStoreProvider } from "./store";
 import "./styles.css";
 import "./login.css";
