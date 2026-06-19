@@ -52,12 +52,49 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, timeou
   }
 }
 
+export async function downloadApiFile(path: string, fallbackFilename: string) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+    headers: { Accept: "application/pdf" }
+  });
+  if (!response.ok) {
+    if (response.status === 401) window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    let failure: ApiFailure | undefined;
+    try {
+      failure = await response.json() as ApiFailure;
+    } catch {
+      failure = undefined;
+    }
+    throw new ApiClientError(
+      failure?.error?.code || "DOWNLOAD_FAILED",
+      failure?.error?.message || "File gagal diunduh.",
+      failure?.error?.fields || {},
+      response.status
+    );
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = responseFilename(response.headers.get("Content-Disposition")) || fallbackFilename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
 async function readPayload<T>(response: Response): Promise<ApiSuccess<T> | ApiFailure> {
   try {
     return await response.json() as ApiSuccess<T> | ApiFailure;
   } catch {
     return { success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Respons server tidak valid." } };
   }
+}
+
+function responseFilename(contentDisposition: string | null) {
+  if (!contentDisposition) return undefined;
+  const match = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1];
 }
 
 export const authApi = {
