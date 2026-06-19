@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./AppV2";
+import { AppStoreProvider } from "./store";
 import "./styles.css";
 import "./login.css";
 import "./polish.css";
@@ -22,9 +23,12 @@ import "./settings-hierarchy-refinement.css";
 import "./selective-card-system.css";
 import "./dashboard-refinement.css";
 import "./report-preview-refinement.css";
+import "./phase4-audit.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <AppStoreProvider>
+      <App />
+    </AppStoreProvider>
   </React.StrictMode>
 );
