@@ -320,6 +320,11 @@ function numberMatchesKind(value: string, bonusOnly: boolean) {
 
 async function uniqueBonNumber(tx: Prisma.TransactionClient, prefix: "BON" | "BONUS") {
   const compactDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const lockKey = `${prefix}-${compactDate}`;
+  await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+    SELECT pg_advisory_xact_lock(hashtext(${lockKey}))
+  `;
+
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const suffix = randomBytes(2).readUInt16BE(0) % 1000;
     const value = `${prefix}-${compactDate}-${String(suffix).padStart(3, "0")}`;
