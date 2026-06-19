@@ -1,7 +1,5 @@
 # Inventory Consistency Audit
 
-Inventory consistency remediation is implemented and awaiting final CI verification.
+Inventory consistency remediation is complete. Verify POS and PDF run 107 and E2E POS Flow run 96 passed.
 
-Stock decreases when a normal or Bonus Bon is created. Editing a Piutang Bon restores the previous reservation and applies the new one atomically. Soft-delete and Void restore stock. Settlement and payment cancellation do not alter stock.
-
-The implementation uses a persistent inventory marker for legacy compatibility, deterministic product row locks, conditional stock updates, and tests for concurrent overselling.
+Stock now follows Bon lifecycle rules and all automated checks passed.
