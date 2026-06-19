@@ -14,6 +14,7 @@ export type ProductWriteInput = {
   sku: string;
   name: string;
   type: ApiProductType;
+  stock: number;
   costPrice: number;
   basePrice: number;
 };
