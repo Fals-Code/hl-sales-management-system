@@ -17,6 +17,8 @@ export const TEST_USERNAME = "owner";
 export const TEST_USER_PASSWORD = "secret";
 export const TEST_OWNER_PIN = "123456";
 
+const TEST_BCRYPT_ROUNDS = readTestBcryptRounds();
+
 export type TestContext = Awaited<ReturnType<typeof createTestContext>>;
 
 export async function createTestContext(name: string) {
@@ -72,11 +74,16 @@ export async function resetDb(db: PrismaClient) {
 }
 
 export async function createUser(db: PrismaClient) {
+  const [passwordHash, ownerPinHash] = await Promise.all([
+    bcrypt.hash(TEST_USER_PASSWORD, TEST_BCRYPT_ROUNDS),
+    bcrypt.hash(TEST_OWNER_PIN, TEST_BCRYPT_ROUNDS)
+  ]);
+
   return db.user.create({
     data: {
       username: TEST_USERNAME,
-      passwordHash: await bcrypt.hash(TEST_USER_PASSWORD, 12),
-      ownerPinHash: await bcrypt.hash(TEST_OWNER_PIN, 12)
+      passwordHash,
+      ownerPinHash
     }
   });
 }
@@ -96,4 +103,12 @@ export async function createFixture(ctx: TestContext, bonusThreshold = 100000) {
   const br = await ctx.products.createProduct({ name: "Barang Retail", type: "BR", costPrice: 30000, basePrice: 50000 });
   const loss = await ctx.products.createProduct({ name: "Loss", type: "BR", costPrice: 100000, basePrice: 50000 });
   return { user, customer, lm, br, loss };
+}
+
+function readTestBcryptRounds() {
+  const configured = Number(process.env.TEST_BCRYPT_ROUNDS ?? 4);
+  if (!Number.isInteger(configured) || configured < 4 || configured > 12) {
+    throw new Error("TEST_BCRYPT_ROUNDS must be an integer between 4 and 12.");
+  }
+  return configured;
 }
