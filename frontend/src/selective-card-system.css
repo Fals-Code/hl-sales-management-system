@@ -1,4 +1,4 @@
-/* Selective card system: cards are reserved for independent metrics, summaries, and focused actions. */
+/* Selective card system: cards are reserved for metrics, summaries, and grouped business data. */
 
 /* KPI metrics are easier to compare when each value has a clear boundary. */
 .summary-grid,
@@ -38,7 +38,7 @@
   border-radius: 12px;
 }
 
-/* A compact card is justified for sticky summaries that support a larger workflow. */
+/* Compact cards are justified for summaries that support a larger workflow. */
 .bonus-acceptance-summary,
 .settlement-acceptance-summary,
 .bon-acceptance-summary,
@@ -62,6 +62,96 @@
   padding-left: 0;
 }
 
+/* Tables and business lists use one shared card container. Rows stay flat inside it. */
+.acceptance-list-wrap,
+.acceptance-report-wrap,
+.acceptance-customer-grid,
+.acceptance-product-list,
+.acceptance-bon-list,
+.bonus-eligible-list,
+.bonus-bon-history {
+  overflow: hidden;
+  border: 1px solid #d9e1e8;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(23, 32, 42, 0.045);
+}
+
+.acceptance-list-wrap,
+.acceptance-report-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-top: 1px solid #d9e1e8;
+}
+
+.acceptance-customer-grid,
+.acceptance-product-list,
+.acceptance-bon-list,
+.bonus-eligible-list,
+.bonus-bon-history {
+  gap: 0;
+  border-top: 1px solid #d9e1e8;
+}
+
+.acceptance-customer-card,
+.acceptance-product-card,
+.acceptance-bon-row,
+.bonus-eligible-row,
+.bonus-bon-history article {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.acceptance-customer-card,
+.acceptance-product-card {
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.acceptance-customer-card:last-child,
+.acceptance-product-card:last-child,
+.acceptance-bon-row:last-child,
+.bonus-eligible-row:last-child,
+.bonus-bon-history article:last-child {
+  border-bottom: 0;
+}
+
+.acceptance-list-wrap .acceptance-pagination,
+.acceptance-report-wrap .acceptance-pagination {
+  margin-top: 0;
+  padding: 14px 16px;
+}
+
+.acceptance-bon-table,
+.acceptance-report-table {
+  margin: 0;
+}
+
+.acceptance-bon-table th:first-child,
+.acceptance-bon-table td:first-child,
+.acceptance-report-table th:first-child,
+.acceptance-report-table td:first-child {
+  padding-left: 16px;
+}
+
+.acceptance-bon-table th:last-child,
+.acceptance-bon-table td:last-child,
+.acceptance-report-table th:last-child,
+.acceptance-report-table td:last-child {
+  padding-right: 16px;
+}
+
+@media (min-width: 761px) {
+  .acceptance-customer-card:nth-child(odd) {
+    border-right: 1px solid #e2e8ed;
+  }
+
+  .acceptance-customer-card:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+}
+
 /* Keep distinct business highlights contained, but avoid making every section a box. */
 .receivable-acceptance-hero,
 .negative-profit-card,
@@ -72,7 +162,7 @@
   border-radius: 14px;
 }
 
-/* Quick actions stay light and flat. They are navigation, not content cards. */
+/* Quick actions stay light. They are navigation, not data cards. */
 .quick-action-grid {
   gap: 8px;
   border: 0;
@@ -95,7 +185,7 @@
   background: #eef3f7;
 }
 
-/* Tables, lists, filters, and page sections remain flat with dividers. */
+/* Headers, filters, toolbars, and ordinary sections remain flat. */
 .acceptance-card,
 .panel,
 .final-card,
@@ -106,12 +196,7 @@
   box-shadow: none;
 }
 
-.acceptance-product-card,
-.acceptance-customer-card,
-.acceptance-bon-row,
 .paid-bon-row,
-.bonus-eligible-row,
-.bonus-bon-history article,
 .settlement-selection-card,
 .setting-toggle-card,
 .settings-action-row {
@@ -146,11 +231,39 @@
   .bonus-detail-card {
     padding: 16px;
   }
+
+  .acceptance-customer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acceptance-customer-card {
+    border-right: 0;
+  }
+
+  .acceptance-bon-mobile-list,
+  .acceptance-report-mobile {
+    padding: 0 14px;
+  }
+
+  .acceptance-bon-mobile-list article:last-child,
+  .acceptance-report-mobile article:last-child {
+    border-bottom: 0;
+  }
 }
 
 @media (max-width: 430px) {
   .summary-grid,
   .acceptance-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .acceptance-list-wrap,
+  .acceptance-report-wrap,
+  .acceptance-customer-grid,
+  .acceptance-product-list,
+  .acceptance-bon-list,
+  .bonus-eligible-list,
+  .bonus-bon-history {
+    border-radius: 14px;
   }
 }
