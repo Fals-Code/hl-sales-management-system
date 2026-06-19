@@ -42,7 +42,7 @@ const COLORS = {
 };
 
 const PAGE_MARGIN = 34;
-const FOOTER_HEIGHT = 34;
+const FOOTER_HEIGHT = 50;
 
 export function renderReportPdf(input: PdfReportInput) {
   return new Promise<Buffer>((resolve, reject) => {
@@ -370,7 +370,7 @@ function drawFooters(doc: PDFKit.PDFDocument, title: string) {
     doc.switchToPage(pageIndex);
     const x = doc.page.margins.left;
     const width = contentWidth(doc);
-    const y = doc.page.height - FOOTER_HEIGHT + 3;
+    const y = doc.page.height - doc.page.margins.bottom - 10;
 
     doc.moveTo(x, y - 8).lineTo(x + width, y - 8).lineWidth(0.45).strokeColor(COLORS.border).stroke();
     textAt(doc, `INTERNAL | HL Sales Management | ${title}`, x, y, {
