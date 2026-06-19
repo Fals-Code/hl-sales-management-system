@@ -13,6 +13,10 @@ import {
   VoidService
 } from "../src";
 
+export const TEST_USERNAME = "owner";
+export const TEST_USER_PASSWORD = "secret";
+export const TEST_OWNER_PIN = "123456";
+
 export type TestContext = Awaited<ReturnType<typeof createTestContext>>;
 
 export async function createTestContext(name: string) {
@@ -70,9 +74,9 @@ export async function resetDb(db: PrismaClient) {
 export async function createUser(db: PrismaClient) {
   return db.user.create({
     data: {
-      username: "owner",
-      passwordHash: await bcrypt.hash("secret", 12),
-      ownerPinHash: await bcrypt.hash("123456", 12)
+      username: TEST_USERNAME,
+      passwordHash: await bcrypt.hash(TEST_USER_PASSWORD, 12),
+      ownerPinHash: await bcrypt.hash(TEST_OWNER_PIN, 12)
     }
   });
 }
