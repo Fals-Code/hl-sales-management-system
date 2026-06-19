@@ -1,8 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { acceptanceBons, customerProfiles, productProfiles, type AcceptanceBon, type AcceptanceBonLine, type CustomerProfile, type ProductProfile, type ProductType } from "./acceptance-data";
+import { authApi, SESSION_EXPIRED_EVENT, useApi } from "./api-client";
 import { isValidBonNumber, normalizeBonNumber } from "./bon-number";
+import { hydrationApi, hydrationErrorMessage } from "./hydration-api";
+import { PageLoadingState } from "./PageStates";
+import { mapHydrationPayload } from "./resource-mappers";
 
 const STORAGE_KEY = "hl-phase4-store-v3";
+const SESSION_KEY = "hl-demo-session";
 
 export type StoredCustomer = CustomerProfile & { backendId?: string };
 export type StoredProduct = ProductProfile & { backendId?: string };
@@ -14,6 +19,7 @@ export class AppStoreError extends Error {
 }
 
 type State = { customers: StoredCustomer[]; products: StoredProduct[]; bons: StoredBon[] };
+type HydrationStatus = "idle" | "loading" | "ready" | "error";
 type Store = State & {
   saveCustomer: (value: StoredCustomer) => void;
   softDeleteCustomer: (code: string) => void;
@@ -29,9 +35,82 @@ type Store = State & {
 const StoreContext = createContext<Store | null>(null);
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<State>(readState);
-  syncLegacyCollections(state);
-  useEffect(() => { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
+  const [state, setState] = useState<State>(() => useApi ? emptyState() : readState());
+  const [apiSessionActive, setApiSessionActive] = useState(() => useApi && window.localStorage.getItem(SESSION_KEY) === "active");
+  const [hydrationStatus, setHydrationStatusState] = useState<HydrationStatus>(() => useApi ? "idle" : "ready");
+  const [hydrationError, setHydrationError] = useState("");
+  const hydrationStatusRef = useRef<HydrationStatus>(useApi ? "idle" : "ready");
+  const hydrationGenerationRef = useRef(0);
+  const lastDemoSessionRef = useRef(window.localStorage.getItem(SESSION_KEY) === "active");
+
+  const setHydrationStatus = useCallback((status: HydrationStatus) => {
+    hydrationStatusRef.current = status;
+    setHydrationStatusState(status);
+  }, []);
+
+  const resetApiState = useCallback(() => {
+    hydrationGenerationRef.current += 1;
+    setState(emptyState());
+    setHydrationError("");
+    setHydrationStatus("idle");
+    setApiSessionActive(false);
+  }, [setHydrationStatus]);
+
+  const hydrateFromApi = useCallback(async () => {
+    if (!useApi || hydrationStatusRef.current === "loading") return;
+    const generation = hydrationGenerationRef.current;
+    setHydrationError("");
+    setHydrationStatus("loading");
+    try {
+      const payload = await hydrationApi.load();
+      if (generation !== hydrationGenerationRef.current) return;
+      setState(mapHydrationPayload(payload));
+      setHydrationStatus("ready");
+    } catch (error) {
+      if (generation !== hydrationGenerationRef.current) return;
+      setHydrationError(hydrationErrorMessage(error));
+      setHydrationStatus("error");
+    }
+  }, [setHydrationStatus]);
+
+  useEffect(() => {
+    syncLegacyCollections(state);
+    if (!useApi) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  useEffect(() => {
+    if (!useApi) return;
+    let disposed = false;
+
+    const activate = () => {
+      if (disposed) return;
+      setApiSessionActive(true);
+      void hydrateFromApi();
+    };
+    const deactivate = () => {
+      window.localStorage.removeItem(SESSION_KEY);
+      lastDemoSessionRef.current = false;
+      resetApiState();
+    };
+    const expire = () => deactivate();
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, expire);
+    void authApi.me().then(activate).catch(deactivate);
+
+    const timer = window.setInterval(() => {
+      const current = window.localStorage.getItem(SESSION_KEY) === "active";
+      if (current === lastDemoSessionRef.current) return;
+      lastDemoSessionRef.current = current;
+      if (current) activate();
+      else deactivate();
+    }, 50);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      window.removeEventListener(SESSION_EXPIRED_EVENT, expire);
+    };
+  }, [hydrateFromApi, resetApiState]);
 
   const value = useMemo<Store>(() => ({
     ...state,
@@ -66,8 +145,27 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const bonusDelta = existing.isBonus && existing.status !== "Void" ? -bonUnits(existing) : 0;
       return { ...current, bons: current.bons.map((item) => item.number === number ? { ...item, deletedAt: new Date().toISOString() } : item), customers: current.customers.map((customer) => customer.code === existing.customerCode ? { ...customer, accumulatedPaidOmzet: Math.max(0, customer.accumulatedPaidOmzet + revenueDelta), bonusesGranted: Math.max(0, customer.bonusesGranted + bonusDelta) } : customer) };
     }),
-    resetStore: () => setState(seedState())
-  }), [state]);
+    resetStore: () => {
+      if (useApi) resetApiState();
+      else setState(seedState());
+    }
+  }), [resetApiState, state]);
+
+  if (useApi && apiSessionActive && hydrationStatus !== "ready") {
+    return (
+      <StoreContext.Provider value={value}>
+        <main className="login-page">
+          {hydrationStatus === "error" ? (
+            <section className="app-state-card" role="alert">
+              <h2>Data belum berhasil dimuat</h2>
+              <p>{hydrationError}</p>
+              <button className="button button--primary" type="button" onClick={() => { void hydrateFromApi(); }}>Coba lagi</button>
+            </section>
+          ) : <PageLoadingState label="Mengambil data aplikasi" />}
+        </main>
+      </StoreContext.Provider>
+    );
+  }
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
@@ -113,4 +211,5 @@ function bonOmzet(state: State, bon: StoredBon) {
 function upsert<T>(items: T[], next: T, key: (value: T) => string) { return items.some((item) => key(item) === key(next)) ? items.map((item) => key(item) === key(next) ? next : item) : [...items, next]; }
 function readState(): State { try { const raw = window.localStorage.getItem(STORAGE_KEY); if (!raw) return seedState(); const parsed = JSON.parse(raw) as State; return Array.isArray(parsed.customers) && Array.isArray(parsed.products) && Array.isArray(parsed.bons) ? parsed : seedState(); } catch { return seedState(); } }
 function seedState(): State { return { customers: structuredClone(customerProfiles), products: structuredClone(productProfiles), bons: structuredClone(acceptanceBons) }; }
+function emptyState(): State { return { customers: [], products: [], bons: [] }; }
 function syncLegacyCollections(state: State) { customerProfiles.splice(0, customerProfiles.length, ...state.customers); productProfiles.splice(0, productProfiles.length, ...state.products); acceptanceBons.splice(0, acceptanceBons.length, ...state.bons.filter((bon) => !bon.deletedAt)); }
