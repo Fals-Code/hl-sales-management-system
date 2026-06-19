@@ -24,7 +24,7 @@ const commonBonFields = {
 };
 
 const previewBonSchema = z.object({ bonNumber: bonNumberSchema.optional(), ...commonBonFields }).strict();
-const createBonSchema = z.object({ bonNumber: bonNumberSchema, ...commonBonFields }).strict();
+const createBonSchema = z.object({ bonNumber: bonNumberSchema.optional(), ...commonBonFields }).strict();
 const updateBonSchema = z.object({ bonNumber: bonNumberSchema.optional(), ...commonBonFields }).strict();
 const voidSchema = z.object({ ownerPin: z.string().min(1), reason: z.string().trim().min(1) }).strict();
 const bonListSchema = paginationSchema
