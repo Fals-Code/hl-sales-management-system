@@ -36,7 +36,18 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:migrate:deploy
       - run: npm run typecheck
-      - run: npm test
+      - name: Run backend tests
+        id: backend_tests
+        continue-on-error: true
+        run: npm test -- --reporter=json --outputFile=vitest-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-report
+          path: vitest-report.json
+      - name: Enforce backend test result
+        if: steps.backend_tests.outcome == 'failure'
+        run: exit 1
 
   frontend:
     runs-on: ubuntu-latest
