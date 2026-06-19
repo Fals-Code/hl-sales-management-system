@@ -7,14 +7,14 @@ type ReportScope = "overall" | "LM" | "BR";
 type ReportPreviewProps = {
   open: boolean;
   periodLabel: string;
-  customerName: string;
-  scope: ReportScope;
+  customerName?: string;
+  scope?: ReportScope;
   rows: AcceptanceBon[];
   onClose: () => void;
   onPrint: () => void;
 };
 
-export function ReportPreview({ open, periodLabel, customerName, scope, rows, onClose, onPrint }: ReportPreviewProps) {
+export function ReportPreview({ open, periodLabel, customerName = "Semua pelanggan", scope = "overall", rows, onClose, onPrint }: ReportPreviewProps) {
   const scopeLabel = scope === "overall" ? "Keseluruhan Produk" : `Produk ${scope}`;
   const reportTitle = customerName === "Semua pelanggan"
     ? scope === "overall"
