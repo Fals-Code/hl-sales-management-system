@@ -27,7 +27,7 @@ async function finishBonSuccess(page: Page, bonNumber: string, downloadPdf = fal
     expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
   }
   await page.getByRole("button", { name: "Kembali ke daftar transaksi" }).click();
-  await expect(page).toHaveURL(/#\/bons$/);
+  await expect(page.locator(".bon-create-dialog")).toBeHidden();
 }
 
 async function addFirstAvailableProduct(page: Page) {
@@ -41,12 +41,14 @@ async function createNormalBon(page: Page, description: string) {
   await page.goto("/#/dashboard");
   await waitForApp(page);
   await page.getByRole("button", { name: /Buat Bon/ }).first().click();
-  await expect(page).toHaveURL(/#\/bons\/new/);
+  await expect(page.locator(".bon-create-dialog")).toBeVisible();
+  await expect(page).toHaveURL(/#\/dashboard$/);
   const bonNumber = await readGeneratedBonNumber(page, "BON");
   await page.getByLabel("Deskripsi").fill(description);
   await addFirstAvailableProduct(page);
   await page.getByRole("button", { name: "Simpan Bon" }).click();
   await finishBonSuccess(page, bonNumber, true);
+  await page.goto("/#/bons");
   await waitForApp(page);
   await expect(page.getByText(bonNumber, { exact: true }).first()).toBeVisible();
   return bonNumber;
@@ -172,7 +174,8 @@ test("real API persists every Phase 5 write path and reload state", async ({ pag
   await waitForApp(page);
   await expect(page.getByText("1 unit", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Buat Bonus Bon" }).click();
-  await expect(page).toHaveURL(/#\/bons\/new/);
+  await expect(page.locator(".bon-create-dialog")).toBeVisible();
+  await expect(page).toHaveURL(/#\/bonus$/);
   const bonusNumber = await readGeneratedBonNumber(page, "BONUS");
   await addFirstAvailableProduct(page);
   await page.getByRole("button", { name: "Simpan Bon" }).click();
