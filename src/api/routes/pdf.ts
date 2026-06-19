@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import PDFDocument from "pdfkit";
-import { toSafeMoneyNumber } from "../../domain/money";
+import { renderReportPdf, type PdfReportInput } from "../../services/pdfReportService";
 import type { ApiContext } from "../types";
 import { reportFilterSchema } from "../schemas/common";
 import { toReportFilters } from "./reports";
@@ -8,55 +7,73 @@ import { toReportFilters } from "./reports";
 export async function registerPdfRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.get("/api/v1/pdf/transactions", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    const data = { summary: await ctx.reports.overall(filters), rows: await ctx.reports.transactionRows(filters) };
-    return sendPdf(reply, "Rekap Transaksi", data);
+    return sendPdf(reply, {
+      kind: "transactions",
+      title: "Rekap Transaksi",
+      subtitle: "Cash basis untuk transaksi Lunas dan Tanggal Bon untuk Piutang",
+      summary: await ctx.reports.overall(filters),
+      rows: await ctx.reports.transactionRows(filters),
+      filters
+    });
   });
+
   app.get("/api/v1/pdf/receivables", async (request, reply) => {
     const filters = toReportFilters(reportFilterSchema.parse(request.query));
-    const data = { summary: await ctx.reports.overall(filters), rows: await ctx.reports.receivableRows(filters) };
-    return sendPdf(reply, "Rekap Piutang", data);
+    return sendPdf(reply, {
+      kind: "receivables",
+      title: "Rekap Piutang",
+      subtitle: "Estimasi nilai yang belum diakui sebagai omzet",
+      summary: await ctx.reports.overall(filters),
+      rows: await ctx.reports.receivableRows(filters),
+      filters
+    });
   });
+
   app.get("/api/v1/pdf/customers/:id", async (request, reply) => {
     const id = String((request.params as { id: string }).id);
+    const customer = await ctx.db.customer.findFirstOrThrow({ where: { id, deletedAt: null }, select: { name: true, code: true } });
     const filters = { ...toReportFilters(reportFilterSchema.parse(request.query)), customerId: id };
-    const data = { summary: await ctx.reports.byCustomer(id, filters), rows: await ctx.reports.transactionRows(filters) };
-    return sendPdf(reply, "Rekap Pelanggan", data);
+    return sendPdf(reply, {
+      kind: "customer",
+      title: "Rekap Pelanggan",
+      subtitle: `${customer.name}${customer.code ? ` - ${customer.code}` : ""}`,
+      summary: await ctx.reports.byCustomer(id, filters),
+      rows: await ctx.reports.transactionRows(filters),
+      filters
+    });
   });
+
   app.get("/api/v1/pdf/overall", async (request, reply) => {
-    const data = await ctx.reports.overall(toReportFilters(reportFilterSchema.parse(request.query)));
-    return sendPdf(reply, "Rekap Keseluruhan", data);
+    const filters = toReportFilters(reportFilterSchema.parse(request.query));
+    return sendPdf(reply, {
+      kind: "overall",
+      title: "Rekap Keseluruhan",
+      subtitle: "Ringkasan omzet, laba, pembayaran, Piutang, dan bonus",
+      summary: await ctx.reports.overall(filters),
+      filters
+    });
   });
+
   app.get("/api/v1/pdf/bonus-log", async (request, reply) => {
-    const data = await ctx.reports.bonusLogRows(toReportFilters(reportFilterSchema.parse(request.query)));
-    return sendPdf(reply, "Log Bonus", data);
+    const filters = toReportFilters(reportFilterSchema.parse(request.query));
+    return sendPdf(reply, {
+      kind: "bonus-log",
+      title: "Log Bonus",
+      subtitle: "Riwayat perolehan, penggunaan, dan pembalikan unit bonus",
+      rows: await ctx.reports.bonusLogRows(filters),
+      filters
+    });
   });
 }
 
-async function sendPdf(reply: { header: (name: string, value: string) => unknown; send: (payload: Buffer) => unknown }, title: string, data: unknown) {
-  const buffer = await renderPdf(title, data);
+async function sendPdf(reply: { header: (name: string, value: string) => unknown; send: (payload: Buffer) => unknown }, input: PdfReportInput) {
+  const buffer = await renderReportPdf(input);
   reply.header("Content-Type", "application/pdf");
-  reply.header("Content-Disposition", `attachment; filename="${title.toLowerCase().replace(/\s+/g, "-")}.pdf"`);
+  reply.header("Content-Disposition", `attachment; filename="${slug(input.title)}.pdf"`);
+  reply.header("Content-Length", String(buffer.length));
   return reply.send(buffer);
 }
 
-function renderPdf(title: string, data: unknown) {
-  return new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", margin: 36 });
-    const chunks: Buffer[] = [];
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.fontSize(16).text(title);
-    doc.moveDown(0.5);
-    doc.fontSize(10).text(`Dibuat: ${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`);
-    doc.moveDown();
-    doc.fontSize(8).text(JSON.stringify(data, jsonReplacer, 2), { lineGap: 2 });
-    doc.end();
-  });
-}
-
-function jsonReplacer(_key: string, value: unknown) {
-  if (typeof value === "bigint") return toSafeMoneyNumber(value, "pdfMoney");
-  if (value instanceof Date) return value.toISOString();
-  return value;
+function slug(value: string) {
+  return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
