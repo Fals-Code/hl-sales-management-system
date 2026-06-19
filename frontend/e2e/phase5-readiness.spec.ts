@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 const viewports = [
   { name: "320x568", width: 320, height: 568 },
@@ -39,6 +39,14 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   await page.screenshot({ path: testInfo.outputPath("visual", `${name}.png`), fullPage: true });
 }
 
+async function fillLossAuthorization(dialog: Locator) {
+  const pin = dialog.locator("label.field").filter({ hasText: "PIN Owner" }).locator('input[type="password"]');
+  if (await pin.isVisible()) {
+    await pin.fill("1234");
+    await dialog.locator("label.field").filter({ hasText: "Alasan" }).locator("textarea").last().fill("Regression transaksi laba negatif");
+  }
+}
+
 test("keyboard-only login reaches dashboard", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -72,7 +80,7 @@ test("reports remain readable on mobile, tablet, desktop, and browser zoom equiv
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto("/#/reports");
     await waitForApp(page);
-    await expect(page.getByRole("heading", { name: "Laporan" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laporan", level: 2 })).toBeVisible();
     await assertNoPageOverflow(page);
     await capture(page, testInfo, `reports-${viewport.name}`);
   }
@@ -124,6 +132,8 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   const numberInput = createDialog.locator("label.field").filter({ hasText: "Nomor Bon" }).locator("input");
   const bonNumber = await numberInput.inputValue();
   await createDialog.locator("label.field").filter({ hasText: "Deskripsi" }).locator("textarea").fill("Regression Phase 5");
+  await fillLossAuthorization(createDialog);
+  await expect(createDialog.getByRole("button", { name: "Simpan Bon" })).toBeEnabled();
   await createDialog.getByRole("button", { name: "Simpan Bon" }).click();
   await expect(createDialog.getByRole("heading", { name: bonNumber })).toBeVisible();
   await capture(page, testInfo, "flow-created-bon");
@@ -135,6 +145,7 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   await page.getByRole("button", { name: "Edit Bon" }).click();
   const editDialog = page.getByRole("dialog");
   await editDialog.locator("label.field").filter({ hasText: "Deskripsi" }).locator("textarea").fill("Regression Phase 5 diperbarui");
+  await fillLossAuthorization(editDialog);
   await editDialog.getByRole("button", { name: "Simpan Perubahan" }).click();
   await expect(page.getByText("Perubahan Bon Piutang berhasil disimpan", { exact: false })).toBeVisible();
 
