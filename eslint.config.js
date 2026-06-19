@@ -29,7 +29,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["tests/api/**/*.ts"],
+    files: ["tests/api/**/*.ts", "tests/phase5-data.test.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
