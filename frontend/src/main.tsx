@@ -18,6 +18,7 @@ import "./navbar-refinement.css";
 import "./profile-menu-refinement.css";
 import "./bon-dialog-layout-fix.css";
 import "./visual-hierarchy-refinement.css";
+import "./settings-hierarchy-refinement.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
