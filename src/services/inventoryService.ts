@@ -23,6 +23,17 @@ export async function assertInventoryAvailable(tx: InventoryDb, items: Inventory
   }
 }
 
+export async function lockInventoryRows(tx: Prisma.TransactionClient, items: InventoryItem[]) {
+  for (const [productId] of aggregateInventoryItems(items)) {
+    await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "Product"
+      WHERE "id" = ${productId}
+      FOR UPDATE
+    `;
+  }
+}
+
 export async function reserveInventory(tx: InventoryDb, items: InventoryItem[]) {
   for (const [productId, quantity] of aggregateInventoryItems(items)) {
     const updated = await tx.$executeRaw`
