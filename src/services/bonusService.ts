@@ -97,6 +97,8 @@ export class BonusService {
     const usedLedgers = await this.db.bonusLedger.findMany({
       where: { customerId: input.customerId, bonId: input.bonId, mutationType: BONUS_MUTATION.USED }
     });
+    if (usedLedgers.length === 0) return;
+
     const existingReversals = await this.db.bonusLedger.findMany({
       where: { customerId: input.customerId, reversalOfId: { in: usedLedgers.map((ledger) => ledger.id) } }
     });
@@ -145,6 +147,11 @@ export class BonusService {
     const earnedLedgers = await this.db.bonusLedger.findMany({
       where: { customerId: input.customerId, paymentId: input.paymentId, mutationType: BONUS_MUTATION.EARNED }
     });
+    if (earnedLedgers.length === 0) {
+      await this.recalculateCurrentCarryover(input.customerId);
+      return;
+    }
+
     const existingReversals = await this.db.bonusLedger.findMany({
       where: { customerId: input.customerId, reversalOfId: { in: earnedLedgers.map((ledger) => ledger.id) } }
     });
@@ -180,65 +187,69 @@ export class BonusService {
       bonId: input.bonId,
       paymentId: input.paymentId,
       reason: input.reason,
-      thresholdSnapshot: availability.threshold,
-      revenueSnapshot: currentPeriodRevenue,
       allowNegative: true
     });
   }
 
-  async isEligible(customerId: string) {
-    const availability = await this.getAvailability(customerId);
-    return {
-      eligible: availability.availableUnits > 0,
-      balance: availability.availableUnits,
-      ...availability
-    };
-  }
-
-  private async getActiveSettledRevenue(customerId: string, settledFrom?: Date) {
-    const paid = await this.db.bon.aggregate({
-      where: { customerId, status: "LUNAS", deletedAt: null, ...(settledFrom ? { settledAt: { gte: settledFrom } } : {}) },
-      _sum: { revenueLm: true, revenueBr: true }
+  async recalculateCurrentCarryover(customerId: string) {
+    const customer = await this.db.customer.findUniqueOrThrow({ where: { id: customerId } });
+    const threshold = toSafeMoneyNumber(customer.bonusThreshold, "bonusThreshold");
+    const thresholdContext = await this.getCurrentThresholdContext(customerId);
+    const revenue = thresholdContext.initialCarryover + await this.getActiveSettledRevenue(customerId, thresholdContext.effectiveFrom);
+    const carryover = threshold > 0 ? revenue % threshold : 0;
+    return this.db.customer.update({
+      where: { id: customerId },
+      data: { bonusCarryoverRevenue: toDbMoney(carryover, "bonusCarryoverRevenue") }
     });
-    return toSafeMoneyNumber(paid._sum.revenueLm, "revenueLm") + toSafeMoneyNumber(paid._sum.revenueBr, "revenueBr");
-  }
-
-  private async getNetEarnedLedgerUnits(customerId: string, createdFrom?: Date) {
-    const ledgers = await this.db.bonusLedger.findMany({
-      where: {
-        customerId,
-        mutationType: { in: [BONUS_MUTATION.EARNED, BONUS_MUTATION.REVERSED] },
-        ...(createdFrom ? { createdAt: { gte: createdFrom } } : {})
-      }
-    });
-    const earnedIds = new Set(ledgers.filter((ledger) => ledger.mutationType === BONUS_MUTATION.EARNED).map((ledger) => ledger.id));
-    return ledgers.reduce((sum, ledger) => {
-      if (ledger.mutationType === BONUS_MUTATION.EARNED) return sum + ledger.amount;
-      if (ledger.reversalOfId && earnedIds.has(ledger.reversalOfId)) return sum + ledger.amount;
-      return sum;
-    }, 0);
   }
 
   private async getCurrentThresholdContext(customerId: string) {
-    const latest = await this.db.bonusThresholdHistory.findFirst({
+    const history = await this.db.bonusThresholdHistory.findFirst({
       where: { customerId, effectiveUntil: null },
       orderBy: { effectiveFrom: "desc" }
     });
     return {
-      effectiveFrom: latest?.effectiveFrom,
-      initialCarryover: toSafeMoneyNumber(latest?.carryoverRevenue, "thresholdCarryover")
+      effectiveFrom: history?.effectiveFrom,
+      initialCarryover: toSafeMoneyNumber(history?.carryoverRevenue, "carryoverRevenue")
     };
   }
 
-  private async recalculateCurrentCarryover(customerId: string) {
-    const availability = await this.getAvailability(customerId);
-    const thresholdContext = await this.getCurrentThresholdContext(customerId);
-    const currentPeriodRevenue = thresholdContext.initialCarryover + await this.getActiveSettledRevenue(customerId, thresholdContext.effectiveFrom);
-    await this.db.customer.update({
-      where: { id: customerId },
-      data: {
-        bonusCarryoverRevenue: toDbMoney(availability.threshold > 0 ? currentPeriodRevenue % availability.threshold : 0, "bonusCarryoverRevenue")
+  private async getActiveSettledRevenue(customerId: string, from?: Date) {
+    const payments = await this.db.payment.findMany({
+      where: {
+        customerId,
+        canceledAt: null,
+        ...(from ? { settlementDate: { gte: from } } : {})
+      },
+      include: {
+        bons: {
+          where: { reversedAt: null },
+          include: { bon: true }
+        }
       }
     });
+    return payments.reduce((sum, payment) => sum + payment.bons.reduce((bonSum, link) => {
+      if (link.bon.status === "VOID" || link.bon.deletedAt) return bonSum;
+      return bonSum + toSafeMoneyNumber(link.bon.revenueLm, "revenueLm") + toSafeMoneyNumber(link.bon.revenueBr, "revenueBr");
+    }, 0), 0);
+  }
+
+  private async getNetEarnedLedgerUnits(customerId: string, from?: Date) {
+    const ledgers = await this.db.bonusLedger.findMany({
+      where: {
+        customerId,
+        ...(from ? { createdAt: { gte: from } } : {})
+      },
+      orderBy: { createdAt: "asc" }
+    });
+    const byId = new Map(ledgers.map((ledger) => [ledger.id, ledger]));
+    return ledgers.reduce((sum, ledger) => {
+      if (ledger.mutationType === BONUS_MUTATION.EARNED) return sum + ledger.amount;
+      if (ledger.mutationType === BONUS_MUTATION.REVERSED && ledger.reversalOfId) {
+        const source = byId.get(ledger.reversalOfId);
+        if (source?.mutationType === BONUS_MUTATION.EARNED) return sum + ledger.amount;
+      }
+      return sum;
+    }, 0);
   }
 }
