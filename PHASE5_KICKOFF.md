@@ -1,97 +1,74 @@
-# Phase 5 Kickoff — API Integration
+# Phase 5 — Backend and Frontend Integration
 
-Phase 5 dimulai dari commit penyelesaian Phase 4 yang ditandai oleh branch `phase-4-complete`.
-
-Branch kerja:
+Phase 5 dibangun dari baseline Phase 4 pada branch `phase-4-complete` dan dikerjakan pada branch:
 
 ```text
 phase-5-api-integration
 ```
 
-## Tujuan
+## Status
 
-Mengganti data seed dan localStorage sebagai sumber data utama dengan backend API nyata tanpa mengubah desain visual yang telah lulus acceptance dan visual regression.
+**SELESAI — 5 dari 5 slice (100%)**
 
-## Status implementasi
+Frontend sekarang menggunakan backend API dan PostgreSQL sebagai sumber data utama ketika `VITE_USE_API=true`. Perubahan tetap tersedia setelah reload browser, sementara localStorage hanya dipertahankan untuk mode demo.
 
-### Slice 1 — authoritative read dan master write
+## Slice yang diselesaikan
 
-Status: **LULUS CI**
+### Slice 1 — Authentication dan authoritative hydration
 
-Selesai:
+- Login, logout, cookie session, protected route, dan penanganan session expired terhubung ke API.
+- Hydration awal menggunakan satu endpoint authoritative `GET /api/v1/bootstrap`.
+- Bootstrap memuat customer, product, Bon, snapshot transaksi, bonus availability, dan bonus ledger.
+- Loading, retry, unauthorized, timeout, server error, dan network error ditangani pada frontend.
 
-- hydration customer, product, dan Bon dari seluruh halaman API;
-- session-aware loading, retry, stale-session reset, dan network failure state;
-- mapper DTO ke model UI, termasuk snapshot produk/pelanggan historis;
-- pemisahan ID database dari kode tampilan;
-- create, edit, dan soft-delete customer melalui API;
-- create, edit, dan soft-delete product melalui API;
-- settlement multi-Bon dan cancellation pembayaran melalui API;
-- localStorage hanya digunakan pada mode demo, bukan sebagai source of truth saat `VITE_USE_API=true`;
-- unit test mapper frontend dan integration test payload backend;
-- dependency audit, typecheck, lint, backend tests, frontend tests, production build, dan browser regression lulus pada workflow run 94.
+### Slice 2 — Customer dan Product Integration
 
-Masih dikerjakan sebelum PR keluar dari draft:
+- Customer dapat ditampilkan, ditambah, diedit, dan di-soft-delete melalui API.
+- Diskon LM/BR bertingkat dan bonus threshold tersimpan di backend.
+- Product dapat ditampilkan, ditambah, diedit, dan di-soft-delete melalui API.
+- ID database dipisahkan dari kode tampilan, sementara histori Bon tetap memakai snapshot.
 
-- refresh authoritative setelah create Bon;
-- edit dan soft-delete Bon melalui API pada seluruh jalur UI;
-- Void Bon melalui API dengan otorisasi Owner;
-- hydration riwayat settlement dan bonus yang lebih lengkap;
-- report/export yang langsung menggunakan respons backend;
-- Playwright E2E dengan PostgreSQL dan API nyata.
+### Slice 3 — Transaction Integration
 
-## Urutan pengerjaan
+- Customer dan product aktif diambil dari backend.
+- Preview diskon bertingkat, pembulatan Rp100, omzet, laba, ongkir, dan total tagihan konsisten dengan backend.
+- Bon normal dan Bonus Bon dapat dibuat melalui API.
+- Bon Piutang dapat dilihat, diedit, dan di-soft-delete.
+- Duplicate Nomor Bon, produk/customer tidak aktif, Bon Lunas, dan transaksi laba negatif memakai error serta otorisasi backend.
+- Setelah setiap write action, frontend melakukan refresh authoritative dari API.
 
-### 1. Backend readiness
+### Slice 4 — Settlement, Bonus, Reporting, dan Error Handling
 
-- Pastikan seluruh endpoint customer, product, Bon, settlement, bonus, Void, report, dan authentication memiliki kontrak final.
-- Tambahkan endpoint yang masih diperlukan untuk hydration awal aplikasi.
-- Pastikan pagination, filter, sorting, error envelope, dan transaksi database konsisten.
-- Pertahankan snapshot transaksi, cash basis, threshold carryover, serta audit authorization.
+- Pelunasan satu atau beberapa Bon serta pelunasan bulanan tersimpan di PostgreSQL.
+- Pembatalan pembayaran dan Void Bon memakai PIN Owner serta alasan audit.
+- Total Piutang, pembayaran, omzet, laba, dan bonus diperbarui setelah settlement/cancellation/Void.
+- Bonus availability, Bonus Bon, saldo tersisa, dan ledger bonus ditampilkan dari backend.
+- Laporan memakai `paymentDate` untuk omzet/laba/pembayaran dan `bonDate` untuk Piutang.
+- Breakdown LM/BR berasal dari scoped lines yang sama.
+- Rekap dan PDF diambil langsung dari reporting/PDF API.
 
-### 2. API contract dan adapter
+### Slice 5 — Integration Hardening dan Validation
 
-- Definisikan tipe DTO request/response frontend.
-- Pisahkan ID database dari kode tampilan.
-- Buat mapper API ke model UI dan sebaliknya.
-- Tangani validation, duplicate value, conflict, unauthorized, timeout, dan network failure secara terpusat.
-
-### 3. UI state integration
-
-- Hydrate customer, product, Bon, settlement, bonus, dan report dari API.
-- Tambahkan loading, empty, retry, stale-session, dan failure state tanpa merusak layout.
-- Pertahankan snapshot tampilan untuk transaksi historis.
-- Hapus mutasi langsung terhadap seed array setelah resource terkait terintegrasi.
-
-### 4. Frontend write integration
-
-- Create, edit, dan soft-delete customer.
-- Create, edit, dan soft-delete product.
-- Preview, create, edit, dan soft-delete Bon Piutang.
-- Settlement, cancellation, dan Void dengan otorisasi Owner.
-- Bonus Bon dan riwayat bonus.
-- Report dan export berdasarkan data backend.
-
-### 5. Integration validation
-
-- Jalankan backend dan frontend dengan PostgreSQL test database.
-- Tambahkan Playwright E2E menggunakan API nyata, bukan localStorage seed.
-- Uji login, expiry session, create/edit Bon, settlement, cancellation, Void, Bonus Bon, report, dan reload halaman.
-- Pastikan state tetap konsisten setelah refresh dan perpindahan halaman.
-- Jalankan kembali viewport regression 320 × 568 sampai 1920 × 1080 serta zoom 125% dan 150%.
+- Ditambahkan Playwright E2E dengan PostgreSQL dan API nyata.
+- Alur yang diuji: login, create/edit customer, create/edit product, create/edit Bon, reload, settlement, cancellation, settlement ulang, Void, Bonus Bon, soft-delete Bon, laporan, PDF, dan logout/session reset.
+- CORS diperbaiki agar seluruh method CRUD (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) dapat digunakan frontend.
+- API client tidak lagi mengirim `Content-Type: application/json` pada request tanpa body, sehingga DELETE dan logout tidak gagal pada parser JSON.
+- Viewport dan visual regression Phase 4 tetap dijalankan.
 
 ## Definition of Done
 
-Phase 5 selesai ketika:
+- [x] Seluruh halaman utama membaca data dari API.
+- [x] Seluruh write action utama tersimpan di PostgreSQL.
+- [x] Reload browser tidak menghilangkan perubahan.
+- [x] localStorage bukan source of truth pada mode API.
+- [x] API dan frontend memakai kontrak serta error lifecycle yang konsisten.
+- [x] Authentication cookie berfungsi end-to-end.
+- [x] Backend dependency audit, typecheck, lint, dan test lulus.
+- [x] Frontend dependency audit, typecheck, unit test, dan production build lulus.
+- [x] Browser/visual regression lulus.
+- [x] Real API Playwright integration test lulus.
 
-- seluruh halaman utama membaca data dari API;
-- seluruh write action utama tersimpan di PostgreSQL;
-- reload browser tidak menghilangkan perubahan;
-- localStorage tidak lagi menjadi source of truth transaksi;
-- API dan frontend memakai kontrak serta error code yang sama;
-- authentication cookie berfungsi end-to-end;
-- backend tests, frontend unit tests, production build, dependency audit, dan Playwright integration tests lulus;
-- visual acceptance Phase 4 tetap terjaga.
+Validasi terakhir dijalankan oleh workflow **Phase 5 Integration Validation** pada branch `phase-5-api-integration`.
 
 ## Konfigurasi lokal
 
