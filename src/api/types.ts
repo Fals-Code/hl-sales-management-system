@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AuthService } from "../services/authService";
 import type { BonusService } from "../services/bonusService";
+import type { BootstrapService } from "../services/bootstrapService";
 import type { CustomerService } from "../services/customerService";
 import type { ProductService } from "../services/productService";
 import type { ReportingService } from "../services/reportingService";
@@ -12,6 +13,7 @@ import type { VoidService } from "../services/voidService";
 export type ApiContext = {
   db: PrismaClient;
   auth: AuthService;
+  bootstrap: BootstrapService;
   customers: CustomerService;
   products: ProductService;
   transactions: TransactionService;
