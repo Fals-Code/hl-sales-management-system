@@ -1,10 +1,11 @@
 import { FileText, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function AcceptancePdfPreviewDialog({ open, title, subtitle, children, onClose, onPrint }: { open: boolean; title: string; subtitle: string; children: ReactNode; onClose: () => void; onPrint: () => void }) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="dialog-backdrop acceptance-dialog-backdrop acceptance-pdf-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="acceptance-pdf-dialog" role="dialog" aria-modal="true" aria-labelledby="acceptance-pdf-title" onMouseDown={(event) => event.stopPropagation()}>
         <header className="acceptance-pdf-header">
@@ -18,7 +19,7 @@ export function AcceptancePdfPreviewDialog({ open, title, subtitle, children, on
           <div className="acceptance-paper-preview">
             <div className="acceptance-paper-brand"><div><strong>HL</strong><span>Sales & Receivables Management</span></div><small>IDR (Rp) · Tanpa PPN</small></div>
             {children}
-            <footer className="acceptance-paper-footer"><span>Preview frontend</span><span>Data mock</span></footer>
+            <footer className="acceptance-paper-footer"><span>HL Sales</span><span>Dokumen laporan</span></footer>
           </div>
         </div>
         <footer className="acceptance-pdf-actions">
@@ -26,7 +27,8 @@ export function AcceptancePdfPreviewDialog({ open, title, subtitle, children, on
           <div><button className="button button--secondary" type="button" onClick={onClose}>Tutup</button><button className="button button--primary" type="button" onClick={onPrint}>Cetak Dokumen</button></div>
         </footer>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
