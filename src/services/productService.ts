@@ -11,12 +11,13 @@ export class ProductService {
     sku?: string;
     name: string;
     type: ProductTypeValue;
-    stock: number;
+    stock?: number;
     costPrice: number;
     basePrice: number;
   }) {
-    validateProduct(input);
-    const { stock, ...productInput } = input;
+    const stock = input.stock ?? 0;
+    validateProduct({ ...input, stock });
+    const { stock: _stock, ...productInput } = input;
     return this.db.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
