@@ -4,12 +4,27 @@ import {
   customerProfiles,
   productProfiles,
   type AcceptanceBon,
+  type AcceptanceBonLine,
   type CustomerProfile,
-  type ProductProfile
+  type ProductProfile,
+  type ProductType
 } from "./acceptance-data";
 import { isValidBonNumber, normalizeBonNumber } from "./bon-number";
 
-const STORAGE_KEY = "hl-phase4-store-v2";
+const STORAGE_KEY = "hl-phase4-store-v3";
+
+export type StoredCustomer = CustomerProfile & { backendId?: string };
+export type StoredProduct = ProductProfile & { backendId?: string };
+export type StoredBonLine = AcceptanceBonLine & {
+  backendProductId?: string;
+  snapshotProductName?: string;
+  snapshotProductType?: ProductType;
+};
+export type StoredBon = Omit<AcceptanceBon, "lines"> & {
+  backendId?: string;
+  deletedAt?: string;
+  lines: StoredBonLine[];
+};
 
 export class AppStoreError extends Error {
   constructor(public readonly code: string, message: string) {
@@ -19,19 +34,20 @@ export class AppStoreError extends Error {
 }
 
 type State = {
-  customers: CustomerProfile[];
-  products: ProductProfile[];
-  bons: AcceptanceBon[];
+  customers: StoredCustomer[];
+  products: StoredProduct[];
+  bons: StoredBon[];
 };
 
 type Store = State & {
-  saveCustomer: (value: CustomerProfile) => void;
+  saveCustomer: (value: StoredCustomer) => void;
   softDeleteCustomer: (code: string) => void;
-  saveProduct: (value: ProductProfile) => void;
+  saveProduct: (value: StoredProduct) => void;
   softDeleteProduct: (id: string) => void;
-  createBon: (value: AcceptanceBon) => void;
-  updateBon: (originalNumber: string, value: AcceptanceBon) => void;
+  createBon: (value: StoredBon) => void;
+  updateBon: (originalNumber: string, value: StoredBon) => void;
   updateBonStatus: (number: string, status: AcceptanceBon["status"], paymentDate?: string) => void;
+  softDeleteBon: (number: string) => void;
   resetStore: () => void;
 };
 
@@ -64,22 +80,29 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       ...current,
       products: current.products.map((item) => item.id === id ? { ...item, active: false } : item)
     })),
-    createBon: (next) => {
-      const prepared = prepareBon(state, next);
-      setState((current) => ({ ...current, bons: [prepared, ...current.bons] }));
-    },
-    updateBon: (originalNumber, next) => {
-      const prepared = prepareBon(state, next, originalNumber);
-      setState((current) => ({
+    createBon: (next) => setState((current) => {
+      const prepared = prepareBon(current, next);
+      return { ...current, bons: [prepared, ...current.bons] };
+    }),
+    updateBon: (originalNumber, next) => setState((current) => {
+      const prepared = prepareBon(current, next, originalNumber);
+      const existing = current.bons.find((item) => item.number === originalNumber);
+      return {
         ...current,
-        bons: current.bons.map((item) => item.number === originalNumber ? prepared : item)
-      }));
-    },
+        bons: current.bons.map((item) => item.number === originalNumber
+          ? { ...prepared, backendId: prepared.backendId ?? existing?.backendId, deletedAt: existing?.deletedAt }
+          : item)
+      };
+    }),
     updateBonStatus: (number, status, paymentDate) => setState((current) => ({
       ...current,
       bons: current.bons.map((item) => item.number === number
-        ? { ...item, status, paymentDate: status === "Lunas" ? paymentDate : undefined }
+        ? { ...item, status, paymentDate: status === "Lunas" ? paymentDate : status === "Bonus" ? item.paymentDate : undefined }
         : item)
+    })),
+    softDeleteBon: (number) => setState((current) => ({
+      ...current,
+      bons: current.bons.map((item) => item.number === number ? { ...item, deletedAt: new Date().toISOString() } : item)
     })),
     resetStore: () => setState(seedState())
   }), [state]);
@@ -93,7 +116,7 @@ export function useAppStore() {
   return value;
 }
 
-function prepareBon(state: State, input: AcceptanceBon, excludeNumber?: string): AcceptanceBon {
+function prepareBon(state: State, input: StoredBon, excludeNumber?: string): StoredBon {
   const number = normalizeBonNumber(input.number);
   if (!isValidBonNumber(number)) throw new AppStoreError("VALIDATION_ERROR", "Format Nomor Bon tidak valid.");
   if (state.bons.some((item) => item.number !== excludeNumber && normalizeBonNumber(item.number) === number)) {
@@ -101,11 +124,14 @@ function prepareBon(state: State, input: AcceptanceBon, excludeNumber?: string):
   }
   const customer = state.customers.find((item) => item.code === input.customerCode && item.active);
   if (!customer) throw new AppStoreError("VALIDATION_ERROR", "Pelanggan tidak tersedia.");
-  const lines = input.lines.map((line) => {
+  const lines: StoredBonLine[] = input.lines.map((line) => {
     const product = state.products.find((item) => item.id === line.productId && item.active);
     if (!product) throw new AppStoreError("VALIDATION_ERROR", "Produk tidak tersedia.");
     return {
       ...line,
+      backendProductId: product.backendId,
+      snapshotProductName: product.name,
+      snapshotProductType: product.type,
       snapshotCostPrice: product.costPrice,
       snapshotBasePrice: product.basePrice,
       snapshotDiscounts: [...(product.type === "LM" ? customer.discountLm : customer.discountBr)]
@@ -150,5 +176,5 @@ function seedState(): State {
 function syncLegacyCollections(state: State) {
   customerProfiles.splice(0, customerProfiles.length, ...state.customers);
   productProfiles.splice(0, productProfiles.length, ...state.products);
-  acceptanceBons.splice(0, acceptanceBons.length, ...state.bons);
+  acceptanceBons.splice(0, acceptanceBons.length, ...state.bons.filter((bon) => !bon.deletedAt));
 }
