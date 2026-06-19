@@ -26,6 +26,7 @@ import "./report-preview-refinement.css";
 import "./phase4-audit.css";
 import "./phase5-readiness.css";
 import "./bon-create-page.css";
+import "./bon-create-compat.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
