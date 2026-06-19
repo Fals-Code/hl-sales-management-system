@@ -3,7 +3,8 @@ import { AcceptanceBonusPage, AcceptanceReportsPage } from "./AcceptanceBonusRep
 import { AcceptanceCustomersPage } from "./AcceptanceCustomers";
 import { AcceptanceProductsPage } from "./AcceptanceProducts";
 import { AcceptanceSettlementPageV2 } from "./AcceptanceSettlementV2";
-import { AcceptanceBonsPage, AcceptanceDashboardPage, AcceptanceReceivablesPage } from "./AcceptanceTransactions";
+import { AcceptanceBonsPage, AcceptanceReceivablesPage } from "./AcceptanceTransactions";
+import { DashboardPage } from "./DashboardPage";
 import type { PageKey } from "./data";
 import { FinalSettingsPage } from "./final-pages";
 
@@ -11,7 +12,7 @@ export function AppContent({ activePage, selectedBonNumber, settlementCustomerCo
   if (selectedBonNumber) return <AcceptanceBonDetailPageV2 bonNumber={selectedBonNumber} onBack={() => onChangePage("bons")} />;
 
   return <>
-    {activePage === "dashboard" && <AcceptanceDashboardPage onCreateBon={() => onOpenBon()} onNavigate={onChangePage} onViewBon={onViewBon} onCreateBonusBon={onOpenBonusBon} />}
+    {activePage === "dashboard" && <DashboardPage onNavigate={onChangePage} onViewBon={onViewBon} onCreateBonusBon={onOpenBonusBon} />}
     {activePage === "customers" && <AcceptanceCustomersPage onCreateBon={onOpenBon} onSettlement={onOpenSettlement} onViewBon={onViewBon} />}
     {activePage === "products" && <AcceptanceProductsPage />}
     {activePage === "bons" && <AcceptanceBonsPage onCreateBon={() => onOpenBon()} onViewBon={onViewBon} />}
