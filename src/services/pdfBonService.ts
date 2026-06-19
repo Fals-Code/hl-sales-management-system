@@ -155,7 +155,7 @@ function drawFooters(doc: PDFKit.PDFDocument, number: string) {
   const range = doc.bufferedPageRange();
   for (let index = range.start; index < range.start + range.count; index += 1) {
     doc.switchToPage(index);
-    const y = doc.page.height - doc.page.margins.bottom - 8;
+    const y = doc.page.height - doc.page.margins.bottom - 20;
     doc.moveTo(doc.page.margins.left, y - 8).lineTo(doc.page.width - doc.page.margins.right, y - 8).lineWidth(0.5).strokeColor(C.border).stroke();
     doc.fillColor(C.muted).font("Helvetica").fontSize(7).text(`${number} | IDR (Rp) | Tanpa PPN`, doc.page.margins.left, y, { width: contentWidth(doc) * 0.65, lineBreak: false });
     doc.text(`Halaman ${index - range.start + 1} dari ${range.count}`, doc.page.margins.left + contentWidth(doc) * 0.65, y, { width: contentWidth(doc) * 0.35, align: "right", lineBreak: false });
