@@ -76,6 +76,7 @@ export async function buildApp(
   await app.register(cors, {
     origin: process.env.FRONTEND_ORIGIN ?? false,
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   await app.register(rateLimit, { max: 200, timeWindow: "1 minute" });
   await app.register(swagger, {
