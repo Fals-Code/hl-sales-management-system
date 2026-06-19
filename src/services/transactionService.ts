@@ -2,7 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { AuthService } from "./authService";
 import { BonusService } from "./bonusService";
-import { assertInventoryAvailable, reserveInventory, restoreInventory } from "./inventoryService";
+import { assertInventoryAvailable, lockInventoryRows, reserveInventory, restoreInventory } from "./inventoryService";
 import { AUTHORIZATION_TYPE, BonItemKindValue, ITEM_KIND } from "../domain/constants";
 import { calculateBon } from "../domain/calculationEngine";
 import { assertBonNumber } from "../domain/bonNumber";
@@ -49,6 +49,7 @@ export class TransactionService {
     return this.db.$transaction(async (tx) => {
       const bonusOnly = isBonusOnly(input.items);
       const bonNumber = await resolveBonNumber(tx, input.bonNumber, undefined, bonusOnly);
+      await lockInventoryRows(tx, input.items);
       const calculation = await buildCalculation(tx, input);
       const bonusUnits = countBonusUnits(input.items);
       if (bonusUnits > 0) {
@@ -100,6 +101,7 @@ export class TransactionService {
 
   async updatePiutangBon(bonId: string, input: SaveBonInput) {
     return this.db.$transaction(async (tx) => {
+      await lockBonRow(tx, bonId);
       const existing = await tx.bon.findUnique({ where: { id: bonId }, include: { items: true } });
       if (!existing || existing.deletedAt) throw new BusinessError("Bon not found.");
       if (existing.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be edited.");
@@ -107,6 +109,7 @@ export class TransactionService {
       const bonusOnly = isBonusOnly(input.items);
       const requestedNumber = input.bonNumber ?? (numberMatchesKind(existing.bonNumber, bonusOnly) ? existing.bonNumber : undefined);
       const bonNumber = await resolveBonNumber(tx, requestedNumber, bonId, bonusOnly);
+      await lockInventoryRows(tx, [...existing.items, ...input.items]);
       const calculation = await buildCalculation(tx, input);
       const bonusUnits = countBonusUnits(input.items);
 
@@ -169,9 +172,11 @@ export class TransactionService {
 
   async softDeletePiutangBon(bonId: string) {
     return this.db.$transaction(async (tx) => {
+      await lockBonRow(tx, bonId);
       const bon = await tx.bon.findUnique({ where: { id: bonId }, include: { items: true } });
       if (!bon || bon.deletedAt) throw new BusinessError("Bon not found.");
       if (bon.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be soft-deleted.");
+      if (bon.inventoryAppliedAt) await lockInventoryRows(tx, bon.items);
 
       const deleted = await tx.bon.updateMany({
         where: { id: bonId, status: "PIUTANG", deletedAt: null },
@@ -277,6 +282,15 @@ async function writeItems(tx: Prisma.TransactionClient, bonId: string, items: Re
       isBonus: item.isBonus
     }))
   });
+}
+
+async function lockBonRow(tx: Prisma.TransactionClient, bonId: string) {
+  await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Bon"
+    WHERE "id" = ${bonId}
+    FOR UPDATE
+  `;
 }
 
 async function resolveBonNumber(tx: Prisma.TransactionClient, requested: string | undefined, excludeId: string | undefined, bonusOnly: boolean) {
