@@ -42,6 +42,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [hydrationError, setHydrationError] = useState("");
   const hydrationStatusRef = useRef<HydrationStatus>(useApi ? "idle" : "ready");
   const hydrationGenerationRef = useRef(0);
+  const refreshPromiseRef = useRef<Promise<void> | null>(null);
   const lastDemoSessionRef = useRef(window.localStorage.getItem(SESSION_KEY) === "active");
 
   const setHydrationStatus = useCallback((status: HydrationStatus) => {
@@ -51,6 +52,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const resetApiState = useCallback(() => {
     hydrationGenerationRef.current += 1;
+    refreshPromiseRef.current = null;
     setState(emptyState());
     setHydrationError("");
     setHydrationStatus("idle");
@@ -72,6 +74,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setHydrationError(hydrationErrorMessage(error));
       setHydrationStatus("error");
     }
+  }, [setHydrationStatus]);
+
+  const refreshFromApi = useCallback(async () => {
+    if (!useApi) return;
+    if (refreshPromiseRef.current) return refreshPromiseRef.current;
+    const generation = hydrationGenerationRef.current;
+    const request = hydrationApi.load()
+      .then((payload) => {
+        if (generation !== hydrationGenerationRef.current) return;
+        setState(mapHydrationPayload(payload));
+        setHydrationError("");
+        setHydrationStatus("ready");
+      })
+      .finally(() => {
+        if (refreshPromiseRef.current === request) refreshPromiseRef.current = null;
+      });
+    refreshPromiseRef.current = request;
+    return request;
   }, [setHydrationStatus]);
 
   useEffect(() => {
@@ -146,12 +166,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const bonusDelta = existing.isBonus && existing.status !== "Void" ? -bonUnits(existing) : 0;
       return { ...current, bons: current.bons.map((item) => item.number === number ? { ...item, deletedAt: new Date().toISOString() } : item), customers: current.customers.map((customer) => customer.code === existing.customerCode ? { ...customer, accumulatedPaidOmzet: Math.max(0, customer.accumulatedPaidOmzet + revenueDelta), bonusesGranted: Math.max(0, customer.bonusesGranted + bonusDelta) } : customer) };
     }),
-    refreshFromApi: hydrateFromApi,
+    refreshFromApi,
     resetStore: () => {
       if (useApi) resetApiState();
       else setState(seedState());
     }
-  }), [hydrateFromApi, resetApiState, state]);
+  }), [refreshFromApi, resetApiState, state]);
 
   if (useApi && apiSessionActive && hydrationStatus !== "ready") {
     return (
