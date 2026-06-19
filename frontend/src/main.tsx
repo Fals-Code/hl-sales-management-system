@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./AppV3";
+import { installSuccessToastNotificationBridge } from "./notification-success-bridge";
 import { AppStoreProvider } from "./store";
 import { NotificationProvider } from "./notification-store";
 import "./styles.css";
@@ -31,6 +32,8 @@ import "./bon-create-dialog.css";
 import "./pos-page-extras.css";
 import "./pdf-document-preview.css";
 import "./notification-system.css";
+
+installSuccessToastNotificationBridge();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
