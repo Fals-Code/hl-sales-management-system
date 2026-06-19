@@ -1,3 +1,5 @@
+import { resolveApiBaseUrl } from "./api-base-url";
+
 export class ApiClientError extends Error {
   constructor(
     public readonly code: string,
@@ -13,7 +15,7 @@ export class ApiClientError extends Error {
 type ApiSuccess<T> = { success: true; data: T };
 type ApiFailure = { success: false; error: { code: string; message: string; fields?: Record<string, unknown> } };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, window.location);
 export const useApi = import.meta.env.VITE_USE_API === "true";
 export const SESSION_EXPIRED_EVENT = "hl:session-expired";
 
