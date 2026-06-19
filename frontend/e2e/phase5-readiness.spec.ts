@@ -150,7 +150,7 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   await expect(page.getByText("Perubahan Bon Piutang berhasil disimpan", { exact: false })).toBeVisible();
 
   await page.getByRole("button", { name: "Tandai Lunas" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Ya, Catat Pelunasan" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Ya, Tandai Lunas" }).click();
   await expect(page.locator(".acceptance-status")).toContainText("Lunas");
   await capture(page, testInfo, "flow-settled-bon");
 
@@ -169,7 +169,7 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   await waitForApp(page);
   await expect(page.locator(".acceptance-status")).toContainText("Piutang");
   await page.getByRole("button", { name: "Tandai Lunas" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Ya, Catat Pelunasan" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Ya, Tandai Lunas" }).click();
   await page.getByRole("button", { name: "Void Bon" }).click();
   const voidDialog = page.getByRole("dialog");
   await voidDialog.locator('input[type="password"]').fill("1234");
