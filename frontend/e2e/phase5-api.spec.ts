@@ -2,13 +2,34 @@ import { expect, test, type Page } from "@playwright/test";
 
 const username = process.env.PHASE5_TEST_USERNAME ?? "owner";
 const password = process.env.PHASE5_TEST_PASSWORD ?? "phase5-test-password";
+const ownerPin = process.env.OWNER_PIN ?? "246810";
 
 async function waitForApp(page: Page) {
   await expect(page.locator(".app-shell")).toBeVisible();
   await expect(page.locator("#main-content")).toBeVisible();
 }
 
-test("real API persists customer, product, Bon, settlement, bonus, report, and reload state", async ({ page }) => {
+async function createNormalBon(page: Page, description: string) {
+  await page.goto("/#/dashboard");
+  await waitForApp(page);
+  await page.getByRole("button", { name: /Buat Bon/ }).first().click();
+  const dialog = page.getByRole("dialog");
+  const bonNumber = await dialog.getByLabel("Nomor Bon *").inputValue();
+  await dialog.getByLabel("Deskripsi").fill(description);
+  await dialog.getByRole("button", { name: "Simpan Bon" }).click();
+  await expect(dialog.getByRole("heading", { name: bonNumber })).toBeVisible();
+  await dialog.getByRole("button", { name: "Selesai" }).click();
+  return bonNumber;
+}
+
+async function settleCurrentBon(page: Page) {
+  await page.getByRole("button", { name: "Tandai Lunas" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Ya, Tandai Lunas" }).click();
+  await expect(page.locator(".acceptance-status")).toContainText("Lunas");
+}
+
+test("real API persists every Phase 5 write path and reload state", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
@@ -30,6 +51,14 @@ test("real API persists customer, product, Bon, settlement, bonus, report, and r
   await expect(customerDialog).toBeHidden();
   await expect(page.getByText("Toko Integrasi API", { exact: true })).toBeVisible();
 
+  await page.getByText("Toko Integrasi API", { exact: true }).click();
+  await page.getByRole("button", { name: "Edit" }).click();
+  const customerEditDialog = page.getByRole("dialog");
+  await customerEditDialog.getByLabel("Telepon").fill("081234567891");
+  await customerEditDialog.getByRole("button", { name: "Simpan" }).click();
+  await expect(customerEditDialog).toBeHidden();
+  await expect(page.getByText("081234567891", { exact: false })).toBeVisible();
+
   await page.goto("/#/products");
   await waitForApp(page);
   await page.getByRole("button", { name: "Tambah Produk" }).click();
@@ -42,21 +71,21 @@ test("real API persists customer, product, Bon, settlement, bonus, report, and r
   await expect(productDialog).toBeHidden();
   await expect(page.getByText("Produk Integrasi API", { exact: true })).toBeVisible();
 
-  await page.goto("/#/dashboard");
-  await waitForApp(page);
-  await page.getByRole("button", { name: /Buat Bon/ }).first().click();
-  const bonDialog = page.getByRole("dialog");
-  const bonNumber = await bonDialog.getByLabel("Nomor Bon *").inputValue();
-  await bonDialog.getByLabel("Deskripsi").fill("Transaksi browser dengan API nyata");
-  await bonDialog.getByRole("button", { name: "Simpan Bon" }).click();
-  await expect(bonDialog.getByRole("heading", { name: bonNumber })).toBeVisible();
-  await bonDialog.getByRole("button", { name: "Selesai" }).click();
+  const productCard = page.locator(".acceptance-product-card").filter({ hasText: "Produk Integrasi API" });
+  await productCard.getByRole("button", { name: "Edit" }).click();
+  const productEditDialog = page.getByRole("dialog");
+  await productEditDialog.getByLabel("Nama produk *").fill("Produk Integrasi API Final");
+  await productEditDialog.getByRole("button", { name: "Simpan Produk" }).click();
+  await expect(productEditDialog).toBeHidden();
+  await expect(page.getByText("Produk Integrasi API Final", { exact: true })).toBeVisible();
+
+  const firstBonNumber = await createNormalBon(page, "Transaksi browser dengan API nyata");
 
   await page.reload();
   await waitForApp(page);
-  await page.goto(`/#/bon/${encodeURIComponent(bonNumber)}`);
+  await page.goto(`/#/bon/${encodeURIComponent(firstBonNumber)}`);
   await waitForApp(page);
-  await expect(page.getByRole("heading", { name: bonNumber })).toBeVisible();
+  await expect(page.getByRole("heading", { name: firstBonNumber })).toBeVisible();
   await expect(page.getByText("Transaksi browser dengan API nyata", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Edit Bon" }).click();
@@ -66,14 +95,41 @@ test("real API persists customer, product, Bon, settlement, bonus, report, and r
   await expect(editDialog).toBeHidden();
   await expect(page.getByText("Perubahan Bon Piutang berhasil disimpan", { exact: false })).toBeVisible();
 
-  await page.getByRole("button", { name: "Tandai Lunas" }).click();
-  const settlementDialog = page.getByRole("dialog");
-  await settlementDialog.getByRole("button", { name: "Ya, Tandai Lunas" }).click();
-  await expect(page.locator(".acceptance-status")).toContainText("Lunas");
-
+  await settleCurrentBon(page);
   await page.reload();
   await waitForApp(page);
   await expect(page.locator(".acceptance-status")).toContainText("Lunas");
+
+  await page.goto("/#/settlements");
+  await waitForApp(page);
+  const paidRow = page.locator(".paid-bon-row").filter({ hasText: firstBonNumber });
+  await expect(paidRow).toBeVisible();
+  await paidRow.getByRole("button", { name: "Batalkan Pembayaran" }).click();
+  const cancelDialog = page.getByRole("dialog");
+  await cancelDialog.locator('input[type="password"]').fill(ownerPin);
+  await cancelDialog.locator("textarea").fill("Koreksi pembayaran pengujian integrasi");
+  await cancelDialog.getByRole("button", { name: "Batalkan Pembayaran" }).click();
+  await expect(page.getByText(`${firstBonNumber} kembali menjadi Piutang`, { exact: false })).toBeVisible();
+
+  await page.goto(`/#/bon/${encodeURIComponent(firstBonNumber)}`);
+  await waitForApp(page);
+  await expect(page.locator(".acceptance-status")).toContainText("Piutang");
+  await settleCurrentBon(page);
+
+  const secondBonNumber = await createNormalBon(page, "Transaksi khusus pengujian Void");
+  await page.goto(`/#/bon/${encodeURIComponent(secondBonNumber)}`);
+  await waitForApp(page);
+  await settleCurrentBon(page);
+  await page.getByRole("button", { name: "Void Bon" }).click();
+  const voidDialog = page.getByRole("dialog");
+  await voidDialog.locator('input[type="password"]').fill(ownerPin);
+  await voidDialog.locator("textarea").fill("Void transaksi pengujian integrasi");
+  await voidDialog.getByRole("button", { name: "Void Bon" }).click();
+  await expect(page.locator(".acceptance-status")).toContainText("Void");
+
+  await page.reload();
+  await waitForApp(page);
+  await expect(page.locator(".acceptance-status")).toContainText("Void");
 
   await page.goto("/#/bonus");
   await waitForApp(page);
@@ -87,13 +143,39 @@ test("real API persists customer, product, Bon, settlement, bonus, report, and r
   await bonusDialog.getByRole("button", { name: "Selesai" }).click();
   await expect(page.getByText(bonusNumber, { exact: true })).toBeVisible();
 
+  const deletedBonNumber = await createNormalBon(page, "Transaksi khusus pengujian soft-delete");
+  await page.goto(`/#/bon/${encodeURIComponent(deletedBonNumber)}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Nonaktifkan Bon" }).click();
+  const deleteDialog = page.getByRole("dialog");
+  await deleteDialog.getByRole("button", { name: "Nonaktifkan Bon" }).click();
+  await expect(page).toHaveURL(/#\/bons$/);
+
+  await page.goto(`/#/bon/${encodeURIComponent(deletedBonNumber)}`);
+  await waitForApp(page);
+  await expect(page.getByRole("heading", { name: "Bon tidak ditemukan" })).toBeVisible();
+
   await page.goto("/#/reports");
   await waitForApp(page);
   await expect(page.getByText("Omzet Diakui", { exact: true })).toBeVisible();
   await expect(page.getByText("Memuat rekap backend...")).toBeHidden();
+  await expect(page.getByText(firstBonNumber, { exact: true })).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
+
+  const logoutStatus = await page.evaluate(async () => {
+    const response = await fetch("http://127.0.0.1:3000/api/v1/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" }
+    });
+    return response.status;
+  });
+  expect(logoutStatus).toBe(200);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Masuk ke aplikasi" })).toBeVisible();
 });
