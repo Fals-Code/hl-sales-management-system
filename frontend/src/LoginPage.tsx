@@ -67,8 +67,6 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
               {submitting ? "Memeriksa akun..." : "Masuk"}
             </button>
           </form>
-
-          <small className="login-help">Akun demo: <strong>admin</strong> / <strong>password</strong></small>
         </div>
       </section>
     </main>
