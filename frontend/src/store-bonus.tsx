@@ -1,5 +1,5 @@
 import { BarChart3, FileText, Gift, Info, ReceiptText, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { bonusesAvailable, calculateBon, toDisplayDate } from "./acceptance-data";
 import { formatCurrency } from "./data";
 import type { StoredCustomerWithHistory } from "./resource-mappers";
@@ -39,7 +39,7 @@ export function StoreBonus({ onCreateBonusBon }: { onCreateBonusBon: (customerCo
     <section className="acceptance-page">
       <header className="acceptance-page-header">
         <span className="acceptance-page-icon"><Gift size={30} /></span>
-        <div><span className="eyebrow">Bonus berdasarkan omzet Lunas</span><h2>Bonus Pelanggan</h2><p>Saldo dan riwayat bonus dibaca dari ledger backend. Manusia akhirnya berhenti menghitungnya dengan ingatan dan harapan.</p></div>
+        <div><span className="eyebrow">Bonus berdasarkan omzet Lunas</span><h2>Bonus Pelanggan</h2><p>Saldo, kelayakan, dan riwayat bonus dibaca langsung dari ledger backend.</p></div>
       </header>
 
       <div className="acceptance-info-banner"><Info size={23} /><div><strong>Aturan bonus client</strong><span>Setiap bonus memakai satu threshold omzet Lunas. Produk bonus berharga Rp0. Harga Modal tetap dicatat sebagai biaya bonus/promosi, tetapi tidak mengurangi Laba HL.</span></div></div>
@@ -89,6 +89,6 @@ function mutationLabel(value: string) {
   return labels[value] ?? value;
 }
 
-function Stat({ label, value, helper, icon }: { label: string; value: string; helper: string; icon: React.ReactNode }) {
+function Stat({ label, value, helper, icon }: { label: string; value: string; helper: string; icon: ReactNode }) {
   return <article className="acceptance-stat"><span className="acceptance-stat-icon">{icon}</span><div><small>{label}</small><strong>{value}</strong><span>{helper}</span></div></article>;
 }
