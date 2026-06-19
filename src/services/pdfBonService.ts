@@ -54,13 +54,14 @@ function drawHeader(doc: PDFKit.PDFDocument, data: BonPdfData, bonus: boolean) {
 
 function drawMeta(doc: PDFKit.PDFDocument, data: BonPdfData) {
   const x = doc.page.margins.left;
+  const y = doc.y;
   const w = contentWidth(doc);
   const gap = 12;
   const leftW = w * 0.58;
   const details = [data.customer.code, data.customer.phone, data.customer.address].filter(Boolean).join(" | ") || "-";
-  infoCard(doc, x, doc.y, leftW, "PELANGGAN", data.customer.name, details);
-  infoCard(doc, x + leftW + gap, doc.y, w - leftW - gap, "INFORMASI BON", `Tanggal Bon: ${formatDate(data.bonDate)}`, `Tanggal Pelunasan: ${data.settledAt ? formatDate(data.settledAt) : "-"}`);
-  doc.y += 96;
+  infoCard(doc, x, y, leftW, "PELANGGAN", data.customer.name, details);
+  infoCard(doc, x + leftW + gap, y, w - leftW - gap, "INFORMASI BON", `Tanggal Bon: ${formatDate(data.bonDate)}`, `Tanggal Pelunasan: ${data.settledAt ? formatDate(data.settledAt) : "-"}`);
+  doc.y = y + 96;
 }
 
 function infoCard(doc: PDFKit.PDFDocument, x: number, y: number, w: number, eyebrow: string, title: string, detail: string) {
@@ -127,10 +128,12 @@ function drawNote(doc: PDFKit.PDFDocument, description?: string | null) {
   if (!text) return;
   if (doc.y + 64 > pageBottom(doc)) doc.addPage();
   const x = doc.page.margins.left;
+  const y = doc.y;
   const w = contentWidth(doc);
-  doc.roundedRect(x, doc.y, w, 55, 8).fill(C.pale);
-  doc.fillColor(C.blue).font("Helvetica-Bold").fontSize(7.5).text("CATATAN", x + 13, doc.y + 11);
-  doc.fillColor(C.text).font("Helvetica").fontSize(8.5).text(text, x + 13, doc.y + 27, { width: w - 26, lineGap: 2 });
+  doc.roundedRect(x, y, w, 55, 8).fill(C.pale);
+  doc.fillColor(C.blue).font("Helvetica-Bold").fontSize(7.5).text("CATATAN", x + 13, y + 11);
+  doc.fillColor(C.text).font("Helvetica").fontSize(8.5).text(text, x + 13, y + 27, { width: w - 26, lineGap: 2 });
+  doc.y = y + 65;
 }
 
 function sectionTitle(doc: PDFKit.PDFDocument, title: string) {
