@@ -15,6 +15,7 @@ type ApiFailure = { success: false; error: { code: string; message: string; fiel
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 export const useApi = import.meta.env.VITE_USE_API === "true";
+export const SESSION_EXPIRED_EVENT = "hl:session-expired";
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, timeoutMs = 10_000): Promise<T> {
   const controller = new AbortController();
@@ -22,12 +23,16 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, timeou
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...init.headers },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", Accept: "application/json", ...init.headers },
       signal: controller.signal
     });
     const payload = await readPayload<T>(response);
     if (!response.ok || !payload.success) {
       const failure = payload as ApiFailure;
+      if (response.status === 401 && path !== "/api/v1/auth/login") {
+        window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      }
       throw new ApiClientError(
         failure.error?.code || "INTERNAL_SERVER_ERROR",
         failure.error?.message || "Permintaan gagal diproses.",
@@ -55,6 +60,15 @@ async function readPayload<T>(response: Response): Promise<ApiSuccess<T> | ApiFa
   }
 }
 
+export const authApi = {
+  login: (username: string, password: string) => apiRequest<{ userId: string; expiresAt: string }>("/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password })
+  }),
+  logout: () => apiRequest<Record<string, never>>("/api/v1/auth/logout", { method: "POST" }),
+  me: () => apiRequest<{ id: string; username: string }>("/api/v1/auth/me")
+};
+
 export const bonApi = {
   validateNumber: (bonNumber: string, excludeId?: string) => {
     const query = new URLSearchParams({ bonNumber });
@@ -63,5 +77,6 @@ export const bonApi = {
   },
   preview: <T>(payload: unknown) => apiRequest<T>("/api/v1/bons/preview", { method: "POST", body: JSON.stringify(payload) }),
   create: <T>(payload: unknown) => apiRequest<T>("/api/v1/bons", { method: "POST", body: JSON.stringify(payload) }),
-  update: <T>(id: string, payload: unknown) => apiRequest<T>(`/api/v1/bons/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) })
+  update: <T>(id: string, payload: unknown) => apiRequest<T>(`/api/v1/bons/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  remove: <T>(id: string) => apiRequest<T>(`/api/v1/bons/${encodeURIComponent(id)}`, { method: "DELETE" })
 };
