@@ -16,12 +16,17 @@ export class ProductService {
     basePrice: number;
   }) {
     validateProduct(input);
-    return this.db.product.create({
-      data: {
-        ...input,
-        costPrice: toDbMoney(input.costPrice, "costPrice"),
-        basePrice: toDbMoney(input.basePrice, "basePrice")
-      }
+    const { stock, ...productInput } = input;
+    return this.db.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          ...productInput,
+          costPrice: toDbMoney(input.costPrice, "costPrice"),
+          basePrice: toDbMoney(input.basePrice, "basePrice")
+        }
+      });
+      await tx.$executeRaw`UPDATE "Product" SET "stock" = ${stock} WHERE "id" = ${product.id}`;
+      return { ...product, stock };
     });
   }
 
@@ -36,28 +41,41 @@ export class ProductService {
   }) {
     const product = await this.db.product.findFirst({ where: { id: input.id, deletedAt: null } });
     if (!product) throw new BusinessError("Product not found.");
+    const currentStock = await this.readStock(product.id);
     validateProduct({
       name: input.name ?? product.name,
       type: input.type ?? product.type,
-      stock: input.stock ?? product.stock,
+      stock: input.stock ?? currentStock,
       costPrice: input.costPrice ?? toSafeMoneyNumber(product.costPrice, "costPrice"),
       basePrice: input.basePrice ?? toSafeMoneyNumber(product.basePrice, "basePrice")
     });
-    return this.db.product.update({
-      where: { id: input.id },
-      data: {
-        sku: input.sku,
-        name: input.name,
-        type: input.type,
-        stock: input.stock,
-        costPrice: input.costPrice === undefined ? undefined : toDbMoney(input.costPrice, "costPrice"),
-        basePrice: input.basePrice === undefined ? undefined : toDbMoney(input.basePrice, "basePrice")
+    return this.db.$transaction(async (tx) => {
+      const updated = await tx.product.update({
+        where: { id: input.id },
+        data: {
+          sku: input.sku,
+          name: input.name,
+          type: input.type,
+          costPrice: input.costPrice === undefined ? undefined : toDbMoney(input.costPrice, "costPrice"),
+          basePrice: input.basePrice === undefined ? undefined : toDbMoney(input.basePrice, "basePrice")
+        }
+      });
+      const stock = input.stock ?? currentStock;
+      if (input.stock !== undefined) {
+        await tx.$executeRaw`UPDATE "Product" SET "stock" = ${input.stock} WHERE "id" = ${input.id}`;
       }
+      return { ...updated, stock };
     });
   }
 
   async softDeleteProduct(id: string) {
-    return this.db.product.update({ where: { id }, data: { deletedAt: new Date() } });
+    const product = await this.db.product.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { ...product, stock: await this.readStock(id) };
+  }
+
+  private async readStock(id: string) {
+    const rows = await this.db.$queryRaw<Array<{ stock: number }>>`SELECT "stock" FROM "Product" WHERE "id" = ${id}`;
+    return rows[0]?.stock ?? 0;
   }
 }
 
