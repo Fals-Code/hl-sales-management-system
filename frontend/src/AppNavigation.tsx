@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Bell, ChevronDown, Home, LogOut, Menu, Plus, Settings, Users, WalletCards, X } from "lucide-react";
+import { Bell, Home, LogOut, Menu, Plus, Settings, Users, WalletCards, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavButton } from "./components";
 import { navigation, type PageKey } from "./data";
@@ -56,13 +55,6 @@ type AppTopbarProps = {
 };
 
 export function AppTopbar({ title, description, notificationOpen, notificationCount, receivableCount, eligibleBonusCount, onOpenMobile, onCreateBon, onToggleNotifications, onGoReceivables, onGoBonus, onOpenSettings, onLogout }: AppTopbarProps) {
-  const [profileOpen, setProfileOpen] = useState(false);
-
-  const closeProfileAfter = (action: () => void) => {
-    setProfileOpen(false);
-    action();
-  };
-
   return <header className="topbar topbar--simple">
     <button className="icon-button mobile-menu-button" type="button" onClick={onOpenMobile} aria-label="Buka menu"><Menu size={25} /></button>
 
@@ -79,26 +71,19 @@ export function AppTopbar({ title, description, notificationOpen, notificationCo
       </div>
 
       <div
-        className={`profile-menu ${profileOpen ? "is-open" : ""}`}
-        onMouseEnter={() => setProfileOpen(true)}
-        onMouseLeave={() => setProfileOpen(false)}
-        onFocus={() => setProfileOpen(true)}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setProfileOpen(false);
-        }}
+        className="profile-menu"
         onKeyDown={(event) => {
-          if (event.key === "Escape") setProfileOpen(false);
+          if (event.key === "Escape") (event.currentTarget.querySelector(".profile-trigger") as HTMLButtonElement | null)?.blur();
         }}
       >
-        <button className="profile-trigger" type="button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
+        <button className="profile-trigger" type="button" aria-haspopup="menu" aria-label="Buka menu profil Admin HL">
           <span className="user-avatar">AD</span>
           <span className="profile-copy"><strong>Admin HL</strong><small>Pengguna utama</small></span>
-          <ChevronDown size={18} className="profile-chevron" />
         </button>
         <div className="profile-dropdown" role="menu" aria-label="Menu profil">
           <div className="profile-dropdown-heading"><span className="user-avatar">AD</span><span><strong>Admin HL</strong><small>Pengguna utama</small></span></div>
-          <button type="button" role="menuitem" onClick={() => closeProfileAfter(onOpenSettings)}><Settings size={20} /><span><strong>Pengaturan</strong><small>Tampilan dan preferensi aplikasi</small></span></button>
-          <button className="profile-dropdown-danger" type="button" role="menuitem" onClick={() => closeProfileAfter(onLogout)}><LogOut size={20} /><span><strong>Keluar</strong><small>Akhiri sesi aplikasi</small></span></button>
+          <button type="button" role="menuitem" onClick={onOpenSettings}><Settings size={20} /><span><strong>Pengaturan</strong><small>Tampilan dan preferensi aplikasi</small></span></button>
+          <button className="profile-dropdown-danger" type="button" role="menuitem" onClick={onLogout}><LogOut size={20} /><span><strong>Keluar</strong><small>Akhiri sesi aplikasi</small></span></button>
         </div>
       </div>
     </div>
