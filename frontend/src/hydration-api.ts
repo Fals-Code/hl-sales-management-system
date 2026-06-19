@@ -16,6 +16,21 @@ export type ApiBonusAvailabilityDto = {
   ledgerBalance: number;
   availableUnits: number;
 };
+export type ApiBonusLedgerDto = {
+  id: string;
+  customerId: string;
+  mutationType: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  thresholdSnapshot: number | null;
+  revenueSnapshot: number | null;
+  reversalOfId: string | null;
+  bonId: string | null;
+  paymentId: string | null;
+  reason: string | null;
+  createdAt: string;
+};
 export type ApiCustomerDto = {
   id: string;
   code: string | null;
@@ -27,6 +42,7 @@ export type ApiCustomerDto = {
   discountTiers: ApiDiscountTierDto[];
   thresholdHistories?: ApiThresholdHistoryDto[];
   bonusAvailability?: ApiBonusAvailabilityDto;
+  bonusHistory?: ApiBonusLedgerDto[];
 };
 export type ApiProductDto = {
   id: string;
@@ -78,11 +94,12 @@ export const hydrationApi = {
     ]);
 
     const customers = await Promise.all(customerRows.map(async (customer) => {
-      const [detail, bonusAvailability] = await Promise.all([
+      const [detail, bonusAvailability, bonusHistory] = await Promise.all([
         apiRequest<ApiCustomerDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}`),
-        apiRequest<ApiBonusAvailabilityDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus`)
+        apiRequest<ApiBonusAvailabilityDto>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus`),
+        apiRequest<ApiBonusLedgerDto[]>(`/api/v1/customers/${encodeURIComponent(customer.id)}/bonus-history`)
       ]);
-      return { ...customer, ...detail, bonusAvailability };
+      return { ...customer, ...detail, bonusAvailability, bonusHistory };
     }));
 
     return { generatedAt: new Date().toISOString(), customers, products, bons };
