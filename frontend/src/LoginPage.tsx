@@ -1,11 +1,12 @@
 import { AlertCircle, Eye, EyeOff, LockKeyhole, LogIn, UserRound } from "lucide-react";
 import { useState } from "react";
+import { useApi } from "./api-client";
 import { BrandLogo } from "./BrandLogo";
 
 export function LoginPage({ onLogin }: { onLogin: (username: string, password: string) => Promise<void> }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("password");
+  const [username, setUsername] = useState(useApi ? "" : "admin");
+  const [password, setPassword] = useState(useApi ? "" : "password");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
