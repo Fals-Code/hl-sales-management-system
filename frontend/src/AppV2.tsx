@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { AcceptanceBonDialog } from "./AcceptanceBonDialog";
 import { bonusesAvailable } from "./acceptance-data";
 import { AppContent } from "./AppContent";
 import { AppErrorBoundary } from "./AppErrorBoundary";
@@ -9,6 +8,7 @@ import { navigateToBon, navigateToPage, readHashRoute, type HashRoute } from "./
 import { LoginPage } from "./LoginPage";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { PageLoadingState, RouteFallbackState } from "./PageStates";
+import { StoreBonDialog } from "./store-bon";
 import { useAppStore } from "./store";
 
 const pageDescriptions: Record<PageKey, string> = {
@@ -156,7 +156,7 @@ export default function AppV2() {
       </div>
 
       <AppMobileNav activePage={route.page} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} onChangePage={changePage} onCreateBon={() => openBon()} onOpenMenu={() => setMobileMenuOpen(true)} />
-      <AcceptanceBonDialog open={bonDialogOpen} onClose={closeBon} prefillCustomerCode={bonCustomerCode} initialMode={bonMode} />
+      <StoreBonDialog open={bonDialogOpen} onClose={closeBon} prefillCustomerCode={bonCustomerCode} initialMode={bonMode} />
       <LogoutConfirmDialog open={logoutOpen} onClose={() => setLogoutOpen(false)} onConfirm={logout} />
     </div>
   );
