@@ -2,16 +2,20 @@ import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { ApiContext, AuthenticatedRequest } from "../types";
+import { BON_NUMBER_PATTERN, normalizeBonNumber } from "../../domain/bonNumber";
 import { booleanQuerySchema, itemKindSchema, moneySchema, paginationSchema, productTypeSchema, quantitySchema } from "../schemas/common";
 import { paginationMeta, send } from "./helpers";
 
 const bonItemSchema = z.object({ productId: z.string().min(1), quantity: quantitySchema, kind: itemKindSchema }).strict();
+const bonNumberSchema = z.string().trim().regex(BON_NUMBER_PATTERN, "Format Nomor Bon tidak valid.");
 const saveBonSchema = z
   .object({
+    bonNumber: bonNumberSchema,
     customerId: z.string().min(1),
     items: z.array(bonItemSchema).min(1),
     shippingCost: moneySchema.optional(),
-    bonDate: z.string().datetime().optional(),
+    bonDate: z.string().optional(),
+    description: z.string().trim().max(1000).optional(),
     ownerPin: z.string().optional(),
     negativeProfitReason: z.string().optional()
   })
@@ -56,9 +60,10 @@ export async function registerBonRoutes(app: FastifyInstance, ctx: ApiContext) {
   app.post("/api/v1/bons/preview", async (request, reply) => send(reply, await ctx.transactions.previewBon(toSaveBonInput(saveBonSchema.parse(request.body), (request as AuthenticatedRequest).userId))));
 
   app.get("/api/v1/bons/validate-number", async (request, reply) => {
-    const query = z.object({ bonNumber: z.string().trim().min(1) }).strict().parse(request.query);
-    const existing = await ctx.db.bon.findUnique({ where: { bonNumber: query.bonNumber } });
-    return send(reply, { available: !existing });
+    const query = z.object({ bonNumber: bonNumberSchema, excludeId: z.string().optional() }).strict().parse(request.query);
+    const bonNumber = normalizeBonNumber(query.bonNumber);
+    const existing = await ctx.db.bon.findUnique({ where: { bonNumber }, select: { id: true } });
+    return send(reply, { available: !existing || existing.id === query.excludeId });
   });
 
   app.post("/api/v1/bons", async (request, reply) => send(reply, await ctx.transactions.createBon(toSaveBonInput(saveBonSchema.parse(request.body), (request as AuthenticatedRequest).userId)), 201));
@@ -81,7 +86,12 @@ export async function registerBonRoutes(app: FastifyInstance, ctx: ApiContext) {
 }
 
 function toSaveBonInput(body: z.infer<typeof saveBonSchema>, userId: string) {
-  return { ...body, bonDate: body.bonDate ? new Date(body.bonDate) : undefined, userId };
+  return {
+    ...body,
+    bonNumber: normalizeBonNumber(body.bonNumber),
+    bonDate: body.bonDate ? new Date(body.bonDate) : undefined,
+    userId
+  };
 }
 
 function bonWhere(query: {
