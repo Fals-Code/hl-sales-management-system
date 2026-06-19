@@ -11,6 +11,7 @@ export class ProductService {
     sku?: string;
     name: string;
     type: ProductTypeValue;
+    stock: number;
     costPrice: number;
     basePrice: number;
   }) {
@@ -29,6 +30,7 @@ export class ProductService {
     sku?: string | null;
     name?: string;
     type?: ProductTypeValue;
+    stock?: number;
     costPrice?: number;
     basePrice?: number;
   }) {
@@ -37,6 +39,7 @@ export class ProductService {
     validateProduct({
       name: input.name ?? product.name,
       type: input.type ?? product.type,
+      stock: input.stock ?? product.stock,
       costPrice: input.costPrice ?? toSafeMoneyNumber(product.costPrice, "costPrice"),
       basePrice: input.basePrice ?? toSafeMoneyNumber(product.basePrice, "basePrice")
     });
@@ -46,6 +49,7 @@ export class ProductService {
         sku: input.sku,
         name: input.name,
         type: input.type,
+        stock: input.stock,
         costPrice: input.costPrice === undefined ? undefined : toDbMoney(input.costPrice, "costPrice"),
         basePrice: input.basePrice === undefined ? undefined : toDbMoney(input.basePrice, "basePrice")
       }
@@ -57,9 +61,10 @@ export class ProductService {
   }
 }
 
-function validateProduct(input: { name: string; type?: string; costPrice: number; basePrice: number }) {
+function validateProduct(input: { name: string; type?: string; stock: number; costPrice: number; basePrice: number }) {
   if (!input.name.trim()) throw new BusinessError("Product name is required.");
   if (input.type) assertProductType(input.type);
+  if (!Number.isSafeInteger(input.stock) || input.stock < 0) throw new BusinessError("stock must be a non-negative integer.");
   assertNonNegativeMoney(input.costPrice, "costPrice");
   assertNonNegativeMoney(input.basePrice, "basePrice");
 }
