@@ -219,7 +219,7 @@ export class BonusService {
       where: {
         customerId,
         canceledAt: null,
-        ...(from ? { settlementDate: { gte: from } } : {})
+        ...(from ? { paidAt: { gte: from } } : {})
       },
       include: {
         bons: {
@@ -230,7 +230,7 @@ export class BonusService {
     });
     return payments.reduce((sum, payment) => sum + payment.bons.reduce((bonSum, link) => {
       if (link.bon.status === "VOID" || link.bon.deletedAt) return bonSum;
-      return bonSum + toSafeMoneyNumber(link.bon.revenueLm, "revenueLm") + toSafeMoneyNumber(link.bon.revenueBr, "revenueBr");
+      return bonSum + toSafeMoneyNumber(link.allocatedProductRevenue, "allocatedProductRevenue");
     }, 0), 0);
   }
 
