@@ -1,9 +1,9 @@
 import { AcceptanceBonDetailPageV2 } from "./AcceptanceBonDetailV2";
-import { AcceptanceBonusPage } from "./AcceptanceBonusReports";
 import { AcceptanceBonsPage, AcceptanceReceivablesPage } from "./AcceptanceTransactions";
 import { DashboardPage } from "./DashboardPage";
 import type { PageKey } from "./data";
 import { FinalSettingsPage } from "./final-pages";
+import { StoreBonus } from "./store-bonus";
 import { StoreCustomers } from "./store-customers";
 import { StoreProducts } from "./store-products";
 import { StoreReports } from "./store-reports";
@@ -19,7 +19,7 @@ export function AppContent({ activePage, selectedBonNumber, settlementCustomerCo
     {activePage === "bons" && <AcceptanceBonsPage onCreateBon={() => onOpenBon()} onViewBon={onViewBon} />}
     {activePage === "receivables" && <AcceptanceReceivablesPage onSettlement={() => onOpenSettlement()} onViewBon={onViewBon} />}
     {activePage === "settlements" && <StoreSettlement prefillCustomerCode={settlementCustomerCode} onViewBon={onViewBon} />}
-    {activePage === "bonus" && <AcceptanceBonusPage onCreateBonusBon={onOpenBonusBon} />}
+    {activePage === "bonus" && <StoreBonus onCreateBonusBon={onOpenBonusBon} />}
     {activePage === "reports" && <StoreReports />}
     {activePage === "settings" && <FinalSettingsPage comfortableMode={comfortableMode} setComfortableMode={setComfortableMode} highContrast={highContrast} setHighContrast={setHighContrast} reducedMotion={reducedMotion} setReducedMotion={setReducedMotion} />}
   </>;
