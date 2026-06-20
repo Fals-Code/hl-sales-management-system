@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:api": "playwright test --config=playwright.api.config.ts"
+    "test:e2e:api": "playwright test --config=playwright.api.config.ts && playwright test --config=playwright.notification.config.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.4.1",
