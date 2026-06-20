@@ -19,6 +19,7 @@ import { TransactionNotificationService } from "../services/transactionNotificat
 import { VoidNotificationService } from "../services/voidNotificationService";
 import { prisma } from "../lib/prisma";
 import { errorHandler } from "./errors/errorHandler";
+import { registerFrontendRoutes } from "./frontend";
 import { authHook } from "./middleware/auth";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerBonRoutes } from "./routes/bons";
@@ -39,6 +40,7 @@ export async function buildApp(
   const auth = new AuthService(db);
   const notifications = new ConditionNotificationService(db);
   const notificationDomain = new NotificationDomainService(db, notifications);
+  const serveFrontend = process.env.SERVE_FRONTEND === "true";
   const ctx: ApiContext = {
     db,
     auth,
@@ -155,17 +157,19 @@ export async function buildApp(
   });
   app.addHook("preHandler", authHook(ctx));
 
-  app.get("/", () => ({
-    success: true,
-    data: {
-      service: "HL Sales Management API",
-      status: "running",
-      health: "/health",
-      documentation: "/docs",
-      openapi: "/docs/json",
-    },
-    meta: {},
-  }));
+  if (!serveFrontend) {
+    app.get("/", () => ({
+      success: true,
+      data: {
+        service: "HL Sales Management API",
+        status: "running",
+        health: "/health",
+        documentation: "/docs",
+        openapi: "/docs/json",
+      },
+      meta: {},
+    }));
+  }
   app.get("/health", () => ({
     success: true,
     data: { status: "ok" },
@@ -183,6 +187,8 @@ export async function buildApp(
   registerNotificationRoutes(app, ctx);
   registerReportRoutes(app, ctx);
   void registerPdfRoutes(app, ctx);
+
+  if (serveFrontend) registerFrontendRoutes(app);
 
   return app;
 }
