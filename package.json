@@ -19,7 +19,7 @@
     "db:seed:production": "tsx prisma/seed-production.ts",
     "test": "vitest run",
     "test:api": "vitest run tests/api",
-    "lint": "eslint src prisma tests --ignore-pattern prisma/seed-production.ts && eslint prisma/seed-production.ts --rule no-console:off",
+    "lint": "eslint src prisma tests --ignore-pattern prisma/seed-production.ts",
     "check": "npm run build && npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
