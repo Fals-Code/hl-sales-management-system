@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { calculateBon, roundToHundred } from "./acceptance-data";
 import { bonApi, useApi } from "./api-client";
 import { formatCurrency } from "./data";
+import { RupiahInput } from "./rupiah-input";
 import { useAppStore, type StoredBon } from "./store";
 
 export function AcceptanceBonEditDialog({
@@ -194,13 +195,13 @@ function EditForm({
 
           <label className="field">
             <span>Ongkir</span>
-            <input
-              inputMode="numeric"
+            <RupiahInput
+              aria-label="Ongkir"
               value={shipping}
               disabled={saving}
-              onChange={(event) => setShipping(Math.max(0, Number(event.target.value) || 0))}
+              onValueChange={setShipping}
             />
-            <small>{formatCurrency(roundToHundred(shipping))}</small>
+            <small>Dibulatkan menjadi {formatCurrency(roundToHundred(shipping))} saat disimpan.</small>
           </label>
 
           {totals.negativeProfit && (
