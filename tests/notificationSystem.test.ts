@@ -42,17 +42,18 @@ describe("notification system", () => {
 
     const list = await app.inject({ method: "GET", url: "/api/v1/notifications", headers: { cookie } });
     expect(list.statusCode).toBe(200);
-    const payload = list.json().data as { items: Array<{ id: string; eventKey: string }>; unreadCount: number };
+    const payload = list.json<{ data: { items: Array<{ id: string; eventKey: string }>; unreadCount: number } }>().data;
     expect(payload.items.map((item) => item.eventKey)).toEqual(expect.arrayContaining(["auth-login", "product-created", "inventory-stock"]));
     expect(payload.unreadCount).toBeGreaterThanOrEqual(3);
 
     const first = payload.items[0];
     const read = await app.inject({ method: "POST", url: `/api/v1/notifications/${first.id}/read`, headers: { cookie } });
     expect(read.statusCode).toBe(200);
-    expect(read.json().data.readAt).toBeTruthy();
+    expect(read.json<{ data: { readAt: string | null } }>().data.readAt).toBeTruthy();
 
     const unread = await app.inject({ method: "GET", url: "/api/v1/notifications?mode=UNREAD", headers: { cookie } });
-    expect(unread.json().data.items.some((item: { id: string }) => item.id === first.id)).toBe(false);
+    const unreadPayload = unread.json<{ data: { items: Array<{ id: string }> } }>().data;
+    expect(unreadPayload.items.some((item) => item.id === first.id)).toBe(false);
 
     const dismissTarget = payload.items.find((item) => item.id !== first.id);
     expect(dismissTarget).toBeTruthy();
@@ -62,8 +63,9 @@ describe("notification system", () => {
     const markAll = await app.inject({ method: "POST", url: "/api/v1/notifications/read-all", headers: { cookie } });
     expect(markAll.statusCode).toBe(200);
     const finalList = await app.inject({ method: "GET", url: "/api/v1/notifications", headers: { cookie } });
-    expect(finalList.json().data.unreadCount).toBe(0);
-    expect(finalList.json().data.items.some((item: { id: string }) => item.id === dismissTarget!.id)).toBe(false);
+    const finalPayload = finalList.json<{ data: { unreadCount: number; items: Array<{ id: string }> } }>().data;
+    expect(finalPayload.unreadCount).toBe(0);
+    expect(finalPayload.items.some((item) => item.id === dismissTarget!.id)).toBe(false);
   });
 
   it("broadcasts a persisted event to realtime subscribers", async () => {
