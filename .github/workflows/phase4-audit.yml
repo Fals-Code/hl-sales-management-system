@@ -1,8 +1,8 @@
-name: Phase 4 Readiness Validation
+name: Phase 5 Integration Validation
 
 on:
   push:
-    branches: [phase-4-audit-fix, phase-4-readiness-fix]
+    branches: [phase-4-audit-fix, phase-4-readiness-fix, phase-5-api-integration]
   pull_request:
     branches: [phase-4-frontend, phase-4-audit-fix]
 
@@ -99,4 +99,64 @@ jobs:
           if-no-files-found: warn
       - name: Enforce browser regression result
         if: steps.visual_tests.outcome == 'failure'
+        run: exit 1
+
+  phase5-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hl_phase5_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hl_phase5_e2e?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hl_phase5_e2e?schema=public
+      APP_USERNAME: owner
+      APP_PASSWORD: phase5-test-password
+      OWNER_PIN: "246810"
+      FRONTEND_ORIGIN: http://127.0.0.1:4174
+      SESSION_COOKIE_SECURE: "false"
+      PHASE5_TEST_USERNAME: owner
+      PHASE5_TEST_PASSWORD: phase5-test-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run db:generate
+      - run: npm run db:migrate:deploy
+      - run: npm run db:seed
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run real API browser flow
+        id: api_browser_tests
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run test:e2e:api
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase5-api-browser-report
+          path: |
+            frontend/test-results-api
+            frontend/playwright-api-report
+          if-no-files-found: warn
+      - name: Enforce real API browser result
+        if: steps.api_browser_tests.outcome == 'failure'
         run: exit 1

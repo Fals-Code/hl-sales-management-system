@@ -21,7 +21,7 @@ export function StoreBonDialog({
   prefillCustomerCode?: string | null;
   initialMode?: Mode;
 }) {
-  const { customers, products, bons, createBon } = useAppStore();
+  const { customers, products, bons, createBon, refreshFromApi } = useAppStore();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [date, setDate] = useState(currentIsoDate());
   const [number, setNumber] = useState("");
@@ -92,7 +92,7 @@ export function StoreBonDialog({
     if (!valid || !customer) return;
     setSaving(true);
     setError(null);
-    let draft: StoredBon = {
+    const draft: StoredBon = {
       number: normalizedNumber,
       date,
       customerCode,
@@ -125,10 +125,12 @@ export function StoreBonDialog({
               ownerPin: needsApproval ? ownerPin : undefined,
               negativeProfitReason: needsApproval ? negativeProfitReason.trim() : undefined
             });
-        draft = { ...draft, backendId: created.id, number: created.bonNumber };
+        await refreshFromApi();
+        setSaved(created.bonNumber);
+      } else {
+        createBon(draft);
+        setSaved(draft.number);
       }
-      createBon(draft);
-      setSaved(draft.number);
     } catch (caught) {
       const known = caught instanceof ApiClientError || caught instanceof AppStoreError;
       setError(known ? caught.message : "Bon gagal disimpan.");
@@ -150,7 +152,7 @@ export function StoreBonDialog({
           <div className="acceptance-success-state">
             <CheckCircle2 size={44} />
             <h2>{saved}</h2>
-            <p>Bon berhasil disimpan pada data bersama.</p>
+            <p>Bon berhasil disimpan pada backend dan data aplikasi telah dimuat ulang.</p>
             <button className="button button--primary" type="button" onClick={onClose}>Selesai</button>
           </div>
         ) : (
@@ -198,7 +200,7 @@ export function StoreBonDialog({
 
             <footer className="acceptance-dialog-footer">
               <span>{valid ? "Data siap disimpan." : "Lengkapi data, otorisasi, dan Nomor Bon yang valid."}</span>
-              <div className="acceptance-footer-buttons"><button className="button button--secondary" type="button" onClick={onClose}>Batal</button><button className="button button--primary" type="button" disabled={!valid || saving} onClick={save}>{saving ? "Menyimpan..." : "Simpan Bon"}</button></div>
+              <div className="acceptance-footer-buttons"><button className="button button--secondary" type="button" onClick={onClose}>Batal</button><button className="button button--primary" type="button" disabled={!valid || saving} onClick={() => { void save(); }}>{saving ? "Menyimpan..." : "Simpan Bon"}</button></div>
             </footer>
           </>
         )}

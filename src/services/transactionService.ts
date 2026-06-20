@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { AuthService } from "./authService";
 import { BonusService } from "./bonusService";
+import { assertInventoryAvailable, lockInventoryRows, reserveInventory, restoreInventory } from "./inventoryService";
 import { AUTHORIZATION_TYPE, BonItemKindValue, ITEM_KIND } from "../domain/constants";
 import { calculateBon } from "../domain/calculationEngine";
 import { assertBonNumber } from "../domain/bonNumber";
@@ -33,6 +34,7 @@ export class TransactionService {
   async previewBon(input: SaveBonInput) {
     if (input.bonNumber) validateBonNumberForItems(input.bonNumber, input.items);
     const calculation = await buildCalculation(this.db, input);
+    await assertInventoryAvailable(this.db, calculation.items);
     const bonusUnits = countBonusUnits(input.items);
     const bonusAvailability = bonusUnits > 0 ? await new BonusService(this.db).getAvailability(input.customerId) : undefined;
     return {
@@ -47,6 +49,7 @@ export class TransactionService {
     return this.db.$transaction(async (tx) => {
       const bonusOnly = isBonusOnly(input.items);
       const bonNumber = await resolveBonNumber(tx, input.bonNumber, undefined, bonusOnly);
+      await lockInventoryRows(tx, input.items);
       const calculation = await buildCalculation(tx, input);
       const bonusUnits = countBonusUnits(input.items);
       if (bonusUnits > 0) {
@@ -60,12 +63,15 @@ export class TransactionService {
         authorizationId = await this.authorizeNegativeProfit(tx, input, calculation.profitAmount);
       }
 
+      await reserveInventory(tx, calculation.items);
+      const inventoryAppliedAt = new Date();
       const bon = await tx.bon.create({
         data: {
           bonNumber,
           customerId: input.customerId,
           bonDate: input.bonDate ?? new Date(),
           description: normalizeDescription(input.description),
+          inventoryAppliedAt,
           shippingCost: toDbMoney(calculation.shippingCost, "shippingCost"),
           totalBeforeDiscount: toDbMoney(calculation.totalBeforeDiscount, "totalBeforeDiscount"),
           totalAfterDiscount: toDbMoney(calculation.totalAfterDiscount, "totalAfterDiscount"),
@@ -95,13 +101,17 @@ export class TransactionService {
 
   async updatePiutangBon(bonId: string, input: SaveBonInput) {
     return this.db.$transaction(async (tx) => {
-      const existing = await tx.bon.findUnique({ where: { id: bonId } });
+      await lockBonRow(tx, bonId);
+      const existing = await tx.bon.findUnique({ where: { id: bonId }, include: { items: true } });
       if (!existing || existing.deletedAt) throw new BusinessError("Bon not found.");
       if (existing.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be edited.");
 
       const bonusOnly = isBonusOnly(input.items);
       const requestedNumber = input.bonNumber ?? (numberMatchesKind(existing.bonNumber, bonusOnly) ? existing.bonNumber : undefined);
       const bonNumber = await resolveBonNumber(tx, requestedNumber, bonId, bonusOnly);
+      await lockInventoryRows(tx, [...existing.items, ...input.items]);
+      const calculation = await buildCalculation(tx, input);
+      const bonusUnits = countBonusUnits(input.items);
 
       await new BonusService(tx).reverseBonUsage({
         customerId: existing.customerId,
@@ -109,8 +119,11 @@ export class TransactionService {
         reason: "Reversal before Piutang Bon edit"
       });
 
-      const calculation = await buildCalculation(tx, input);
-      const bonusUnits = countBonusUnits(input.items);
+      if (existing.inventoryAppliedAt) {
+        await restoreInventory(tx, existing.items);
+      }
+      await reserveInventory(tx, calculation.items);
+
       if (bonusUnits > 0) {
         const availability = await new BonusService(tx).getAvailability(input.customerId);
         if (bonusUnits > availability.availableUnits) {
@@ -131,6 +144,7 @@ export class TransactionService {
           customerId: input.customerId,
           bonDate: input.bonDate ?? existing.bonDate,
           description: input.description === undefined ? undefined : normalizeDescription(input.description),
+          inventoryAppliedAt: new Date(),
           shippingCost: toDbMoney(calculation.shippingCost, "shippingCost"),
           totalBeforeDiscount: toDbMoney(calculation.totalBeforeDiscount, "totalBeforeDiscount"),
           totalAfterDiscount: toDbMoney(calculation.totalAfterDiscount, "totalAfterDiscount"),
@@ -158,15 +172,27 @@ export class TransactionService {
 
   async softDeletePiutangBon(bonId: string) {
     return this.db.$transaction(async (tx) => {
-      const bon = await tx.bon.findUnique({ where: { id: bonId } });
+      await lockBonRow(tx, bonId);
+      const bon = await tx.bon.findUnique({ where: { id: bonId }, include: { items: true } });
       if (!bon || bon.deletedAt) throw new BusinessError("Bon not found.");
       if (bon.status !== "PIUTANG") throw new BusinessError("Only Piutang Bon can be soft-deleted.");
+      if (bon.inventoryAppliedAt) await lockInventoryRows(tx, bon.items);
+
+      const deleted = await tx.bon.updateMany({
+        where: { id: bonId, status: "PIUTANG", deletedAt: null },
+        data: { deletedAt: new Date(), inventoryAppliedAt: null }
+      });
+      if (deleted.count !== 1) throw new BusinessError("Bon has already changed state and cannot be deleted.");
+
       await new BonusService(tx).reverseBonUsage({
         customerId: bon.customerId,
         bonId,
         reason: "Bonus reversal after Piutang Bon deletion"
       });
-      return tx.bon.update({ where: { id: bonId }, data: { deletedAt: new Date() } });
+      if (bon.inventoryAppliedAt) {
+        await restoreInventory(tx, bon.items);
+      }
+      return tx.bon.findUniqueOrThrow({ where: { id: bonId } });
     });
   }
 
@@ -197,7 +223,7 @@ function isBonusOnly(items: BonItemInput[]) {
   return items.length > 0 && items.every((item) => (item.kind ?? ITEM_KIND.REGULER) === ITEM_KIND.BONUS);
 }
 
-async function buildCalculation(tx: Prisma.TransactionClient, input: SaveBonInput) {
+async function buildCalculation(tx: Prisma.TransactionClient | PrismaClient, input: SaveBonInput) {
   assertNonNegativeMoney(input.shippingCost ?? 0, "shippingCost");
   if (!input.items.length) throw new BusinessError("Bon must contain at least one item.");
   const customer = await tx.customer.findFirst({
@@ -258,6 +284,15 @@ async function writeItems(tx: Prisma.TransactionClient, bonId: string, items: Re
   });
 }
 
+async function lockBonRow(tx: Prisma.TransactionClient, bonId: string) {
+  await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Bon"
+    WHERE "id" = ${bonId}
+    FOR UPDATE
+  `;
+}
+
 async function resolveBonNumber(tx: Prisma.TransactionClient, requested: string | undefined, excludeId: string | undefined, bonusOnly: boolean) {
   const value = requested ? validateBonNumberForItems(requested, bonusOnly ? [{ productId: "bonus", quantity: 1, kind: ITEM_KIND.BONUS }] : []) : await uniqueBonNumber(tx, bonusOnly ? "BONUS" : "BON");
   const existing = await tx.bon.findUnique({ where: { bonNumber: value }, select: { id: true } });
@@ -285,6 +320,11 @@ function numberMatchesKind(value: string, bonusOnly: boolean) {
 
 async function uniqueBonNumber(tx: Prisma.TransactionClient, prefix: "BON" | "BONUS") {
   const compactDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const lockKey = `${prefix}-${compactDate}`;
+  await tx.$queryRaw<Array<{ pg_advisory_xact_lock: null }>>`
+    SELECT pg_advisory_xact_lock(hashtext(${lockKey}))
+  `;
+
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const suffix = randomBytes(2).readUInt16BE(0) % 1000;
     const value = `${prefix}-${compactDate}-${String(suffix).padStart(3, "0")}`;

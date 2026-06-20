@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AuthService } from "../services/authService";
 import type { BonusService } from "../services/bonusService";
 import type { CustomerService } from "../services/customerService";
+import type { NotificationService } from "../services/notificationService";
 import type { ProductService } from "../services/productService";
 import type { ReportingService } from "../services/reportingService";
 import type { SettlementService } from "../services/settlementService";
@@ -19,6 +20,7 @@ export type ApiContext = {
   bonus: BonusService;
   reports: ReportingService;
   voids: VoidService;
+  notifications: NotificationService;
   cookieName: string;
   cookieOptions: {
     httpOnly: true;

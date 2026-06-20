@@ -1,3 +1,5 @@
+@import "./ui-template-recovery.css";
+
 .acceptance-report-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -193,5 +195,30 @@
 
   .acceptance-table td:nth-child(4)::before {
     content: "Total Scoped";
+  }
+
+  /* Final width reset for report cards. Desktop column percentages must not
+     leak into the mobile table-to-card transformation. */
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table,
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table tbody,
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table tr {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td,
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td:nth-child(1),
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td:nth-child(2),
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td:nth-child(3),
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td:nth-child(4) {
+    width: 100% !important;
+    min-width: 0;
+    grid-template-columns: minmax(108px, 0.78fr) minmax(0, 1.22fr);
+  }
+
+  .acceptance-page:has(> .acceptance-report-metrics) .acceptance-table td > strong {
+    min-width: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
   }
 }

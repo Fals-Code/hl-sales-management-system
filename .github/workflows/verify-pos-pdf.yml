@@ -1,0 +1,128 @@
+name: Verify POS and PDF
+
+on:
+  push:
+    branches:
+      - fix/pos-page-pdf-polish-v2
+  pull_request:
+    branches:
+      - phase-5-api-integration
+  workflow_dispatch:
+
+concurrency:
+  group: verify-pos-pdf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hl_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d hl_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hl_test?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hl_test?schema=public
+      SESSION_SECRET: ci-session-secret-that-is-long-enough
+      OWNER_PIN: "246810"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Verify backend types
+        run: npm run build
+
+      - name: Run backend tests sequentially
+        id: backend_tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm test -- --maxWorkers=1 --no-file-parallelism 2>&1 | tee backend-test.log
+
+      - name: Upload backend test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-log
+          path: backend-test.log
+
+      - name: Generate sample Bon PDFs
+        if: steps.backend_tests.outcome == 'success'
+        run: npx tsx scripts/render-sample-bon-pdf.ts
+
+      - name: Upload sample Bon PDFs
+        if: steps.backend_tests.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-bon-pdfs
+          path: artifacts/pdf-preview/*.pdf
+
+      - name: Fail when backend tests fail
+        if: steps.backend_tests.outcome == 'failure'
+        run: exit 1
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+
+      - name: Build frontend
+        id: frontend_build
+        continue-on-error: true
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee ../frontend-build.log
+
+      - name: Upload frontend build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-log
+          path: frontend-build.log
+
+      - name: Run frontend tests
+        if: steps.frontend_build.outcome == 'success'
+        working-directory: frontend
+        run: npm test
+
+      - name: Fail when frontend build fails
+        if: steps.frontend_build.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,101 @@
+.bon-create-dialog-backdrop {
+  z-index: 260;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.acceptance-master-dialog.bon-create-dialog {
+  display: grid;
+  width: min(1480px, calc(100vw - 32px));
+  max-width: none;
+  height: min(920px, calc(100dvh - 32px));
+  max-height: none;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.bon-create-dialog > header {
+  position: relative;
+  z-index: 2;
+  align-items: center;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.bon-create-dialog > header h2 {
+  margin: 2px 0 4px;
+}
+
+.bon-create-dialog > header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.acceptance-master-body.bon-create-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  background: #f4f7f9;
+  overscroll-behavior: contain;
+}
+
+.bon-create-page--dialog {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bon-create-page--dialog .bon-pos-summary {
+  top: 0;
+}
+
+.bon-create-dialog-body .bon-create-success {
+  min-height: min(620px, calc(100dvh - 180px));
+  border-radius: 16px;
+  padding: 28px;
+  background: #fff;
+}
+
+.bon-create-dialog-body .bon-mobile-save-bar {
+  z-index: 4;
+}
+
+@media (max-width: 1100px) {
+  .acceptance-master-dialog.bon-create-dialog {
+    width: calc(100vw - 20px);
+    height: calc(100dvh - 20px);
+  }
+}
+
+@media (max-width: 767px) {
+  .bon-create-dialog-backdrop {
+    padding: 0;
+  }
+
+  .acceptance-master-dialog.bon-create-dialog {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .bon-create-dialog > header {
+    padding: 13px 14px;
+  }
+
+  .bon-create-dialog > header p {
+    display: none;
+  }
+
+  .acceptance-master-body.bon-create-dialog-body {
+    padding: 12px;
+  }
+
+  .bon-create-dialog-body .bon-create-success {
+    min-height: calc(100dvh - 110px);
+    padding: 20px 14px;
+  }
+}

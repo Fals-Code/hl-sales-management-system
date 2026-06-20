@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { bonusesAvailable } from "./acceptance-data";
 import { AppContent } from "./AppContent";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppMobileNav, AppSidebar, AppTopbar } from "./AppNavigation";
@@ -9,14 +8,14 @@ import { navigateToBon, navigateToPage, readHashRoute, type HashRoute } from "./
 import { LoginPage } from "./LoginPage";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { PageLoadingState, RouteFallbackState } from "./PageStates";
-import { StoreBonDialog } from "./store-bon";
-import { useAppStore } from "./store";
+import { StoreBonCreatePage } from "./store-bon-create";
 
 const pageDescriptions: Record<PageKey, string> = {
   dashboard: "Ringkasan cash basis, Piutang, dan tindakan penting hari ini",
   customers: "Kelola pelanggan, diskon bertingkat, dan threshold bonus",
   products: "Kelola produk LM dan BR beserta Harga Modal dan Harga Base",
   bons: "Lihat seluruh Bon dengan status Piutang, Lunas, Bonus, atau Void",
+  "create-bon": "Buat transaksi baru melalui dialog yang konsisten dengan form lain",
   receivables: "Pantau jumlah terutang dan lanjutkan ke Pelunasan",
   settlements: "Lunasi satu Bon atau seluruh Bon dalam satu bulan",
   bonus: "Kelola Bonus Bon tanpa menambah omzet atau laba",
@@ -25,23 +24,20 @@ const pageDescriptions: Record<PageKey, string> = {
 };
 
 type BonMode = "normal" | "bonus";
+type BonComposer = { customerCode: string | null; mode: BonMode };
 
 const readBooleanSetting = (key: string, fallback: boolean) => {
   const stored = window.localStorage.getItem(key);
   return stored === null ? fallback : stored === "true";
 };
 
-export default function AppV2() {
-  const { bons, customers } = useAppStore();
-  const initialRoute = readHashRoute();
+export default function AppV3() {
   const [signedIn, setSignedIn] = useState(() => useApi ? false : window.localStorage.getItem("hl-demo-session") === "active");
   const [authChecking, setAuthChecking] = useState(useApi);
-  const [route, setRoute] = useState<HashRoute>(initialRoute);
+  const [route, setRoute] = useState<HashRoute>(() => readHashRoute());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bonDialogOpen, setBonDialogOpen] = useState(false);
-  const [bonMode, setBonMode] = useState<BonMode>("normal");
-  const [bonCustomerCode, setBonCustomerCode] = useState<string | null>(null);
   const [settlementCustomerCode, setSettlementCustomerCode] = useState<string | null>(null);
+  const [bonComposer, setBonComposer] = useState<BonComposer | null>(null);
   const [comfortableMode, setComfortableMode] = useState(() => readBooleanSetting("hl-comfortable-mode", true));
   const [highContrast, setHighContrast] = useState(() => readBooleanSetting("hl-high-contrast", false));
   const [reducedMotion, setReducedMotion] = useState(() => readBooleanSetting("hl-reduced-motion", true));
@@ -52,10 +48,7 @@ export default function AppV2() {
   useEffect(() => {
     if (!useApi) return;
     let active = true;
-    void authApi.me()
-      .then(() => { if (active) setSignedIn(true); })
-      .catch(() => { if (active) setSignedIn(false); })
-      .finally(() => { if (active) setAuthChecking(false); });
+    void authApi.me().then(() => { if (active) setSignedIn(true); }).catch(() => { if (active) setSignedIn(false); }).finally(() => { if (active) setAuthChecking(false); });
     return () => { active = false; };
   }, []);
 
@@ -63,8 +56,8 @@ export default function AppV2() {
     const expire = () => {
       window.localStorage.removeItem("hl-demo-session");
       setSignedIn(false);
-      setBonDialogOpen(false);
       setLogoutOpen(false);
+      setBonComposer(null);
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, expire);
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, expire);
@@ -76,6 +69,7 @@ export default function AppV2() {
       setRoute(readHashRoute());
       setMobileMenuOpen(false);
       setNotificationOpen(false);
+      setBonComposer(null);
       window.setTimeout(() => {
         setPageLoading(false);
         document.getElementById("main-content")?.focus();
@@ -92,15 +86,25 @@ export default function AppV2() {
     window.localStorage.setItem("hl-reduced-motion", String(reducedMotion));
   }, [comfortableMode, highContrast, reducedMotion]);
 
-  useEffect(() => {
-    const title = route.bonNumber ? `Detail ${route.bonNumber}` : navigation.find((item) => item.key === route.page)?.label ?? "HL Sales";
-    document.title = `${title} | HL Sales`;
-  }, [route]);
+  const backgroundPage: PageKey = route.page === "create-bon" ? "bons" : route.page;
+  const directComposer: BonComposer | null = route.page === "create-bon"
+    ? { customerCode: route.createBonCustomerCode, mode: route.createBonMode ?? "normal" }
+    : null;
+  const activeComposer = bonComposer ?? directComposer;
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen || bonDialogOpen || logoutOpen ? "hidden" : "";
+    const title = route.bonNumber
+      ? `Detail ${route.bonNumber}`
+      : activeComposer
+        ? `Buat ${activeComposer.mode === "bonus" ? "Bonus Bon" : "Bon"}`
+        : navigation.find((item) => item.key === backgroundPage)?.label ?? "HL Sales";
+    document.title = `${title} | HL Sales`;
+  }, [route.bonNumber, activeComposer, backgroundPage]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen || logoutOpen || Boolean(activeComposer) ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [mobileMenuOpen, bonDialogOpen, logoutOpen]);
+  }, [mobileMenuOpen, logoutOpen, activeComposer]);
 
   useEffect(() => {
     const closeTransientUi = (event: KeyboardEvent) => {
@@ -113,39 +117,39 @@ export default function AppV2() {
     return () => window.removeEventListener("keydown", closeTransientUi);
   }, []);
 
-  const receivableCount = bons.filter((bon) => !bon.deletedAt && bon.status === "Piutang" && !bon.isBonus).length;
-  const eligibleBonusCount = customers.filter((customer) => bonusesAvailable(customer) > 0).length;
-  const pageTitle = route.bonNumber ? "Detail Bon" : navigation.find((item) => item.key === route.page)?.label ?? "Dashboard";
-  const pageDescription = route.bonNumber ? route.bonNumber : pageDescriptions[route.page];
+  const pageTitle = route.bonNumber ? "Detail Bon" : navigation.find((item) => item.key === backgroundPage)?.label ?? "Dashboard";
+  const pageDescription = route.bonNumber ? route.bonNumber : pageDescriptions[backgroundPage];
 
   const changePage = (page: PageKey) => {
     setSettlementCustomerCode(null);
+    setBonComposer(null);
     navigateToPage(page);
   };
 
   const openBon = (customerCode?: string, mode: BonMode = "normal") => {
-    setBonCustomerCode(customerCode ?? null);
-    setBonMode(mode);
-    setBonDialogOpen(true);
+    setNotificationOpen(false);
+    setBonComposer({ customerCode: customerCode ?? null, mode });
   };
 
   const closeBon = () => {
-    setBonDialogOpen(false);
-    setBonCustomerCode(null);
-    setBonMode("normal");
+    setBonComposer(null);
+    if (route.page === "create-bon") navigateToPage("bons");
+  };
+
+  const viewBon = (bonNumber: string) => {
+    setBonComposer(null);
+    navigateToBon(bonNumber);
   };
 
   const openSettlement = (customerCode?: string) => {
     setSettlementCustomerCode(customerCode ?? null);
+    setBonComposer(null);
     navigateToPage("settlements");
   };
 
   const login = async (username: string, password: string) => {
-    if (useApi) {
-      await authApi.login(username, password);
-    } else if (username !== "admin" || password !== "password") {
-      throw new Error("Nama pengguna atau kata sandi tidak benar.");
-    }
+    if (useApi) await authApi.login(username, password);
+    else if (username !== "admin" || password !== "password") throw new Error("Nama pengguna atau kata sandi tidak benar.");
     window.localStorage.setItem("hl-demo-session", "active");
     setSignedIn(true);
     navigateToPage("dashboard");
@@ -153,11 +157,12 @@ export default function AppV2() {
 
   const logout = async () => {
     if (useApi) {
-      try { await authApi.logout(); } catch { /* Local cleanup must still run. */ }
+      try { await authApi.logout(); } catch { /* local cleanup still runs */ }
     }
     window.localStorage.removeItem("hl-demo-session");
     setSignedIn(false);
     setLogoutOpen(false);
+    setBonComposer(null);
     navigateToPage("dashboard");
   };
 
@@ -166,19 +171,17 @@ export default function AppV2() {
 
   const shellClass = ["app-shell", comfortableMode && "app-shell--comfortable", highContrast && "app-shell--high-contrast", reducedMotion && "app-shell--reduced-motion"].filter(Boolean).join(" ");
 
-  return (
-    <div className={shellClass}>
-      <a className="skip-link" href="#main-content">Langsung ke isi halaman</a>
-      <AppSidebar activePage={route.page} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} comfortableMode={comfortableMode} onChangePage={changePage} onCloseMobile={() => setMobileMenuOpen(false)} onToggleComfort={() => setComfortableMode((value) => !value)} onLogout={() => setLogoutOpen(true)} />
-      <div className="main-area">
-        <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} notificationCount={receivableCount + eligibleBonusCount} receivableCount={receivableCount} eligibleBonusCount={eligibleBonusCount} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onGoReceivables={() => changePage("receivables")} onGoBonus={() => changePage("bonus")} onOpenSettings={() => changePage("settings")} onLogout={() => setLogoutOpen(true)} />
-        <main className="page-content" id="main-content" tabIndex={-1} aria-busy={pageLoading}>
-          <AppErrorBoundary>{pageLoading ? <PageLoadingState label={`Membuka ${pageTitle}`} /> : route.notFound ? <RouteFallbackState onBack={() => changePage("dashboard")} /> : <AppContent activePage={route.page} selectedBonNumber={route.bonNumber} settlementCustomerCode={settlementCustomerCode} onChangePage={changePage} onOpenBon={(customerCode) => openBon(customerCode)} onOpenBonusBon={(customerCode) => openBon(customerCode, "bonus")} onViewBon={navigateToBon} onOpenSettlement={openSettlement} comfortableMode={comfortableMode} setComfortableMode={setComfortableMode} highContrast={highContrast} setHighContrast={setHighContrast} reducedMotion={reducedMotion} setReducedMotion={setReducedMotion} />}</AppErrorBoundary>
-        </main>
-      </div>
-      <AppMobileNav activePage={route.page} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} onChangePage={changePage} onCreateBon={() => openBon()} onOpenMenu={() => setMobileMenuOpen(true)} />
-      <StoreBonDialog open={bonDialogOpen} onClose={closeBon} prefillCustomerCode={bonCustomerCode} initialMode={bonMode} />
-      <LogoutConfirmDialog open={logoutOpen} onClose={() => setLogoutOpen(false)} onConfirm={() => { void logout(); }} />
+  return <div className={shellClass}>
+    <a className="skip-link" href="#main-content">Langsung ke isi halaman</a>
+    <AppSidebar activePage={backgroundPage} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} comfortableMode={comfortableMode} onChangePage={changePage} onCloseMobile={() => setMobileMenuOpen(false)} onToggleComfort={() => setComfortableMode((value) => !value)} onLogout={() => setLogoutOpen(true)} />
+    <div className="main-area">
+      <AppTopbar title={pageTitle} description={pageDescription} comfortableMode={comfortableMode} notificationOpen={notificationOpen} onOpenMobile={() => setMobileMenuOpen(true)} onToggleComfort={() => setComfortableMode((value) => !value)} onCreateBon={() => openBon()} onToggleNotifications={() => setNotificationOpen((value) => !value)} onOpenSettings={() => changePage("settings")} onLogout={() => setLogoutOpen(true)} />
+      <main className="page-content" id="main-content" tabIndex={-1} aria-busy={pageLoading}>
+        <AppErrorBoundary>{pageLoading ? <PageLoadingState label={`Membuka ${pageTitle}`} /> : route.notFound ? <RouteFallbackState onBack={() => changePage("dashboard")} /> : <AppContent activePage={backgroundPage} selectedBonNumber={route.bonNumber} settlementCustomerCode={settlementCustomerCode} onChangePage={changePage} onOpenBon={(customerCode) => openBon(customerCode)} onOpenBonusBon={(customerCode) => openBon(customerCode, "bonus")} onViewBon={viewBon} onOpenSettlement={openSettlement} comfortableMode={comfortableMode} setComfortableMode={setComfortableMode} highContrast={highContrast} setHighContrast={setHighContrast} reducedMotion={reducedMotion} setReducedMotion={setReducedMotion} />}</AppErrorBoundary>
+      </main>
     </div>
-  );
+    <AppMobileNav activePage={backgroundPage} selectedBonNumber={route.bonNumber} mobileMenuOpen={mobileMenuOpen} onChangePage={changePage} onCreateBon={() => openBon()} onOpenMenu={() => setMobileMenuOpen(true)} />
+    {activeComposer && <StoreBonCreatePage presentation="dialog" prefillCustomerCode={activeComposer.customerCode} initialMode={activeComposer.mode} onCancel={closeBon} onViewBon={viewBon} />}
+    <LogoutConfirmDialog open={logoutOpen} onClose={() => setLogoutOpen(false)} onConfirm={() => { void logout(); }} />
+  </div>;
 }
