@@ -1,20 +1,19 @@
 FROM node:22-bookworm
 
-RUN useradd -m -u 1000 user
-USER user
-ENV HOME=/home/user
-WORKDIR /home/user/app
+USER node
+ENV HOME=/home/node
+WORKDIR /home/node/app
 
-COPY --chown=user:user package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
 
-COPY --chown=user:user prisma ./prisma
+COPY --chown=node:node prisma ./prisma
 RUN npm run db:generate
 
-COPY --chown=user:user frontend/package.json ./frontend/package.json
+COPY --chown=node:node frontend/package.json ./frontend/package.json
 RUN npm --prefix frontend install --no-audit --no-fund
 
-COPY --chown=user:user . .
+COPY --chown=node:node . .
 
 ARG VITE_USE_API=true
 ARG VITE_API_BASE_URL=/
