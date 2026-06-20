@@ -517,7 +517,11 @@ function numberText(value: unknown) {
 
 function formatDate(value: unknown) {
   if (!value) return "-";
-  const date = value instanceof Date ? value : new Date(String(value));
+  const date = value instanceof Date
+    ? value
+    : typeof value === "string" || typeof value === "number"
+      ? new Date(value)
+      : new Date(Number.NaN);
   if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -549,7 +553,13 @@ function field(value: unknown, key: string): unknown {
 
 function textField(value: unknown, key: string) {
   const result = field(value, key);
-  return result === null || result === undefined ? "" : String(result);
+  if (result === null || result === undefined) return "";
+  if (typeof result === "string") return result;
+  if (typeof result === "number" || typeof result === "bigint" || typeof result === "boolean") {
+    return result.toString();
+  }
+  if (result instanceof Date) return result.toISOString();
+  return "";
 }
 
 function nestedText(value: unknown, parent: string, key: string) {

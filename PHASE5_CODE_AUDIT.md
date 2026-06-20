@@ -2,143 +2,149 @@
 
 ## Final Status
 
-**PHASE 5 — CLOSED**
+**PHASE 5 — CLOSED, PENDING RELEASE GATE**
 
-Closed on 20 June 2026 after the latest notification, PDF, data-hydration, and E2E fixes passed the repository verification gates.
+Phase 5 selesai pada tingkat implementasi dan integrasi. Frontend dan backend telah terhubung melalui API nyata, data authoritative disimpan pada PostgreSQL, dan alur bisnis utama dapat dijalankan dari aplikasi.
 
-Phase 5 is complete at the implementation and integration level. The frontend and backend are connected, authoritative data is persisted and reloaded, the main business flows are available through the application, and the latest CI plus browser E2E checks are green.
-
-This status does not mean the application is already production-ready. UAT, production configuration, backup, deployment, monitoring, documentation, and handover remain Phase 6 work.
+Status ini tidak berarti aplikasi otomatis siap production. Testing final, acceptance review, konfigurasi production, backup, deployment, monitoring, dan handover tetap menjadi pekerjaan Phase 6. Rupanya software tidak berubah menjadi production-ready hanya karena tombolnya sudah bisa diklik. Tragis, tetapi sehat.
 
 ## Closure Evidence
 
-Final verified commit before closure documentation:
+Bukti penutupan Phase 5 harus diambil dari workflow terbaru pada commit release candidate, bukan dari nomor run lama yang mudah basi.
 
-- `05c562989380a6ac8e8bb78f65f3266ec52f32e6`
-- Commit message: `test: wait for generated Bon numbers in E2E flow`
+Gate yang wajib hijau:
 
-GitHub Actions results:
+- backend dependency audit;
+- Prisma generation dan migration pada PostgreSQL;
+- backend typecheck dan lint;
+- backend test suite;
+- frontend dependency audit dan typecheck;
+- frontend unit test dan production build;
+- browser/visual regression;
+- API-connected Playwright E2E;
+- PDF regression untuk Bon dan laporan.
 
-- `Verify POS and PDF` run **#61**: **SUCCESS**
-- `E2E POS Flow` run **#50**: **SUCCESS**
+E2E minimum mencakup:
 
-The verification workflow passed:
-
-- backend dependency installation;
-- Prisma client generation;
-- backend TypeScript build;
-- complete backend test suite;
-- sample Bon PDF generation;
-- frontend dependency installation;
-- frontend production build;
-- frontend unit tests.
-
-The E2E workflow passed the real API browser flow covering:
-
-- login;
-- customer create and edit;
-- product create and edit;
-- Bon creation;
-- PDF download;
-- reload persistence;
-- Bon edit;
+- login dan protected session;
+- customer dan product CRUD;
+- Bon create, detail, edit Piutang, reload, dan soft-delete;
+- Nomor Bon unik;
+- transaksi rugi dan Owner PIN;
 - settlement;
 - payment cancellation;
-- settlement retry;
+- settlement ulang;
 - Void;
 - Bonus Bon;
-- soft-delete;
-- reporting;
-- report PDF download;
-- logout and session return to login.
+- reporting dan PDF;
+- logout.
 
 ## Audit Matrix
 
 | Area | Status | Evidence |
 |---|---|---|
-| Authentication | Passed | Login, cookie session, current user, logout, protected routes, and session expiry are integrated. |
-| Customer | Passed | List, create, update, soft-delete, LM/BR discounts, threshold, and history use API data. |
-| Product | Passed | List, create, update, soft-delete, prices, type, and stock use API/bootstrap data. |
-| Transaction | Passed | Server preview, create, detail, Piutang edit, soft-delete, snapshots, and unique Bon numbers are integrated. |
-| Settlement | Passed | Settlement, settlement date, payment cancellation, refresh, and Owner PIN authorization are integrated. |
-| Bonus | Passed | Backend availability, Bonus Bon API, ledger, and remaining units are loaded through bootstrap. |
-| Reporting | Passed | Period filters, cash-basis reporting, LM/BR scope, and PDF use backend endpoints. |
-| Error lifecycle | Passed | Validation, duplicate, unauthorized, PIN, timeout, network, and server errors are handled. |
-| Notification foundation | Passed | Center, toast, unread badge, filters, local persistence, deduplication, and condition events are available. |
-| PDF output | Passed | Bon and report PDF regression tests pass, including one-page compact layout checks. |
-| CI and E2E | Passed | Verify run #61 and E2E run #50 completed successfully. |
+| Authentication | Passed | Login, cookie session, current user, logout, protected routes, dan session expiry terintegrasi. |
+| Customer | Passed | List, create, update, soft-delete, diskon LM/BR, threshold, dan histori memakai API. |
+| Product | Passed | List, create, update, soft-delete, harga, tipe, dan stok memakai API/bootstrap. |
+| Transaction | Passed | Preview server, create, detail, edit Piutang, soft-delete, snapshot, dan Nomor Bon unik terintegrasi. |
+| Settlement | Passed | Settlement satu/multi Bon, tanggal pembayaran, cancellation, refresh, dan PIN Owner terintegrasi. |
+| Bonus | Passed | Availability, Bonus Bon, ledger, penggunaan beberapa bonus, dan carryover berasal dari backend. |
+| Reporting | Passed | Cash basis, payment date, Piutang berdasarkan bon date, LM/BR scope, filter, dan PDF memakai backend. |
+| Error lifecycle | Passed | Validation, duplicate, unauthorized, inactive resource, PIN, timeout, network, dan server error ditangani. |
+| Inventory | Passed | Stok mengikuti lifecycle Bon dan perubahan transaksi. |
+| Notification | Passed | Persistence backend, REST actions, SSE, domain events, toast, badge, filter, read, dan dismiss tersedia. |
+| PDF | Passed | Bon customer-facing dan laporan internal memiliki regression test untuk page count dan data sensitif. |
+| CI/E2E | Pending latest gate | Harus hijau pada commit release candidate Phase 6. |
 
 ## Findings and Resolution
 
-### F5-01 — Notification panel was not general
+### F5-01 — Notification panel tidak bersifat umum
 
-Before the fix, the topbar only counted Piutang Bons and bonus-eligible customers. It had no read/dismiss state, categories, deduplication, toast queue, or persistence.
+Sebelumnya topbar hanya menghitung Piutang dan pelanggan eligible bonus.
 
-Resolution: replaced with the general notification foundation defined in `frontend/GENERAL_NOTIFICATION_SYSTEM.md`.
-
-Status: resolved.
-
-### F5-02 — Frontend stock contract was implicit
-
-Bootstrap returned stock, but the frontend DTO did not declare it explicitly.
-
-Resolution: the API product contract now recognizes stock while retaining a safe compatibility fallback.
+Resolution: notification center umum, toast queue, kategori, severity, unread state, deduplication, target navigation, dan domain event telah diterapkan.
 
 Status: resolved.
 
-### F5-03 — Bon detail could fall back to demo catalog data
+### F5-02 — Kontrak stok frontend tidak eksplisit
 
-The previous calculator could resolve customers and products from mock data even when the Bon came from the API.
+Bootstrap mengirim stok, tetapi DTO frontend belum menegaskannya.
 
-Resolution: Bon detail now uses hydrated customer and product data plus immutable transaction snapshots through `calculateStoredBon`.
-
-Status: resolved.
-
-### F5-04 — PDF report created extra pages
-
-The footer position could overflow the printable area and create blank pages.
-
-Resolution: footer placement was corrected and regression tests were added for report and Bon PDF page count.
+Resolution: kontrak produk frontend dan backend diselaraskan, serta stok mengikuti lifecycle transaksi.
 
 Status: resolved.
 
-### F5-05 — E2E read generated Bon number too early
+### F5-03 — Detail Bon dapat jatuh ke data demo
 
-The browser test read the Bon number field before the asynchronous generated value was available, producing an empty locator expectation even though the Bon was successfully created.
+Perhitungan detail sebelumnya masih dapat mencari customer atau product dari mock catalog.
 
-Resolution: the E2E helper now waits for a valid `BON-YYYYMMDD-NNN` or `BONUS-YYYYMMDD-NNN` value before continuing.
+Resolution: detail Bon memakai hydrated API data dan immutable transaction snapshots melalui kalkulasi stored Bon.
 
-Status: resolved and verified by E2E run #50.
+Status: resolved.
 
-### F5-06 — Notification backend persistence is not implemented
+### F5-04 — PDF dapat menghasilkan halaman tambahan
 
-A backend `Notification` table, read/dismiss endpoints, SSE, and external notification channels are still absent.
+Footer dapat melewati area cetak dan menciptakan blank page.
 
-Status: accepted backlog, not a Phase 5 blocker. The current application is internal and single-user, so local persistence is sufficient for the Phase 5 scope. Backend persistence can be added in Phase 6 or after UAT if cross-browser or cross-device history is required.
+Resolution: layout footer diperbaiki dan regression test page count ditambahkan untuk Bon serta laporan.
 
-## Notification Design in the Closed Phase 5 Scope
+Status: resolved.
 
-- notification source uses authoritative bootstrap state;
-- low stock is five units or fewer;
-- out of stock is zero units;
-- overdue receivable starts at thirty days;
-- bonus eligibility uses backend availability;
-- negative profit uses transaction snapshots;
-- Void, payment cancellation, session expiry, timeout, and network errors publish events;
-- deduplication uses `eventKey + entityId`;
-- read and dismiss state is stored locally;
-- critical notifications must be read before dismissal;
-- resolved conditions disappear automatically and can reappear if the condition returns.
+### F5-05 — E2E membaca Nomor Bon terlalu cepat
+
+Test membaca input sebelum nomor hasil generate tersedia.
+
+Resolution: helper E2E menunggu pola Nomor Bon valid sebelum melanjutkan.
+
+Status: resolved.
+
+### F5-06 — Backend notification persistence belum ada
+
+Temuan awal menyebut tabel Notification, endpoint, dan realtime stream belum tersedia.
+
+Resolution:
+
+- tabel Notification dan migration tersedia;
+- endpoint list, read, read-all, dan dismiss tersedia;
+- SSE stream tersedia pada `/api/v1/notifications/stream`;
+- domain services menerbitkan event transaksi, pembayaran, inventory, bonus, keamanan, dan sistem;
+- integration test memverifikasi persistence serta realtime subscriber.
+
+Status: resolved.
+
+### F5-07 — Lint gate gagal setelah integrasi POS/PDF
+
+Temuan terakhir berasal dari unsafe JSON access pada test notifikasi serta default object stringification pada formatter PDF.
+
+Resolution:
+
+- response test diberi generic type eksplisit;
+- formatter tanggal dan teks hanya menerima tipe primitive atau Date yang aman;
+- temporary diagnostic workflow dibersihkan setelah perbaikan.
+
+Status: resolved, menunggu verifikasi workflow release candidate.
+
+## Notification Scope Final
+
+- persisted notification menjadi sumber riwayat lintas refresh;
+- REST mendukung list, filter unread/category, read, read-all, dan dismiss;
+- SSE mengirim notifikasi baru tanpa reload;
+- low stock adalah lima unit atau kurang;
+- out of stock adalah nol unit;
+- overdue receivable dimulai pada tiga puluh hari;
+- bonus eligibility memakai data authoritative backend;
+- laba negatif memakai snapshot transaksi;
+- Void, cancellation, session expiry, timeout, dan network error menghasilkan event yang sesuai;
+- email dan WhatsApp tetap opsional serta bukan scope Phase 5.
 
 ## Phase 6 Entry Criteria
 
-Phase 6 can start from this branch state. Required work remains:
+Phase 6 dapat dimulai setelah:
 
-- client UAT;
-- visual and responsive testing on target devices;
-- production environment and secret configuration;
-- database backup and restore drill;
-- deployment pipeline and release procedure;
-- logging and monitoring;
-- user guide and operational documentation;
-- handover and final acceptance.
+- seluruh PR Phase 5 digabung berurutan;
+- lint, test, build, migration, E2E, visual regression, dan PDF regression hijau pada commit yang sama;
+- branch release dibuat dari commit tersebut;
+- environment production template tersedia;
+- acceptance matrix, smoke test, backup, restore, dan rollback procedure terdokumentasi.
+
+Panduan lengkap tersedia di `PHASE6_KICKOFF.md`.
