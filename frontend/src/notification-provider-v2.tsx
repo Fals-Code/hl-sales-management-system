@@ -1,0 +1,1 @@
+export const NOTIFICATION_PROVIDER_V2_READY = true;
