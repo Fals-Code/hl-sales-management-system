@@ -9,9 +9,9 @@ import Fastify from "fastify";
 import { randomUUID } from "node:crypto";
 import { AuthService } from "../services/authService";
 import { BonusService } from "../services/bonusService";
+import { ConditionNotificationService } from "../services/conditionNotificationService";
 import { CustomerNotificationService } from "../services/customerNotificationService";
 import { NotificationDomainService } from "../services/notificationDomainService";
-import { NotificationService } from "../services/notificationService";
 import { ProductNotificationService } from "../services/productNotificationService";
 import { ReportingService } from "../services/reportingService";
 import { SettlementNotificationService } from "../services/settlementNotificationService";
@@ -37,7 +37,7 @@ export async function buildApp(
 ) {
   const db = options.db ?? prisma;
   const auth = new AuthService(db);
-  const notifications = new NotificationService(db);
+  const notifications = new ConditionNotificationService(db);
   const notificationDomain = new NotificationDomainService(db, notifications);
   const ctx: ApiContext = {
     db,
