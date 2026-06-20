@@ -1,5 +1,9 @@
 import { buildApp } from "./app";
 
+if (!process.env.FRONTEND_ORIGIN && process.env.RENDER_EXTERNAL_URL) {
+  process.env.FRONTEND_ORIGIN = process.env.RENDER_EXTERNAL_URL;
+}
+
 const app = await buildApp();
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3000);
 
