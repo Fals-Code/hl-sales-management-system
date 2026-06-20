@@ -37,6 +37,20 @@ describe("negative-profit transaction authorization", () => {
     expect(await ctx.db.authorizationRecord.count({ where: { type: "LOSS_TRANSACTION" } })).toBe(1);
   });
 
+  it("does not require Owner PIN when a losing line is offset by other lines and total transaction profit is positive", async () => {
+    const { customer, br, loss } = await createFixture(ctx);
+    const bon = await ctx.transactions.createBon({
+      customerId: customer.id,
+      items: [
+        { productId: loss.id, quantity: 1 },
+        { productId: br.id, quantity: 7 }
+      ]
+    });
+    expect(toSafeMoneyNumber(bon.profitAmount)).toBe(10000);
+    expect(bon.hasNegativeProfit).toBe(false);
+    expect(await ctx.db.authorizationRecord.count({ where: { type: "LOSS_TRANSACTION" } })).toBe(0);
+  });
+
   it("does not treat bonus item cost as negative-profit transaction", async () => {
     const { customer, lm, br } = await createFixture(ctx, 50000);
     const paid = await ctx.transactions.createBon({ customerId: customer.id, items: [{ productId: lm.id, quantity: 1 }] });

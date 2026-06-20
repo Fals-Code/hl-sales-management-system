@@ -124,6 +124,6 @@ export function calculateBon(items: CalculateItemInput[], shippingCost = 0): Cal
     revenueBr,
     profitAmount,
     bonusCost,
-    hasNegativeProfit: calculatedItems.some((item) => !item.isBonus && item.profitAmount < 0) || profitAmount < 0
+    hasNegativeProfit: profitAmount < 0
   };
 }
