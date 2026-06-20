@@ -77,7 +77,7 @@ describe("Phase 2 API", () => {
     });
     expect(customer.statusCode).toBe(201);
 
-    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "LM API", type: "LM", costPrice: 80000, basePrice: 100000 } });
+    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "LM API", type: "LM", stock: 10, costPrice: 80000, basePrice: 100000 } });
     expect(product.statusCode).toBe(201);
     const productId = product.json().data.id as string;
 
@@ -120,7 +120,7 @@ describe("Phase 2 API", () => {
   it("requires Owner PIN and reason for negative-profit transactions", async () => {
     const cookie = await loginCookie();
     const customer = await app.inject({ method: "POST", url: "/api/v1/customers", headers: { cookie }, payload: { name: "Toko Rugi", bonusThreshold: 1000000 } });
-    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "Produk Rugi", type: "BR", costPrice: 100000, basePrice: 50000 } });
+    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "Produk Rugi", type: "BR", stock: 10, costPrice: 100000, basePrice: 50000 } });
     const payload = { customerId: customer.json().data.id, items: [{ productId: product.json().data.id, quantity: 1 }] };
 
     const denied = await app.inject({ method: "POST", url: "/api/v1/bons", headers: { cookie }, payload });
@@ -223,7 +223,7 @@ describe("Phase 2 API", () => {
       headers: { cookie },
       payload: { name: "Toko API", bonusThreshold, discountTiers: [{ productType: "LM", sequence: 1, percentBps: 1000 }] }
     });
-    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "LM API", type: "LM", costPrice: 80000, basePrice: 100000 } });
+    const product = await app.inject({ method: "POST", url: "/api/v1/products", headers: { cookie }, payload: { name: "LM API", type: "LM", stock: 20, costPrice: 80000, basePrice: 100000 } });
     return { customerId: customer.json().data.id as string, productId: product.json().data.id as string };
   }
 });

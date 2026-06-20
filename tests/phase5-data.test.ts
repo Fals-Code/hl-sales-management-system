@@ -115,7 +115,7 @@ describe("Phase 5 data hydration", () => {
       method: "POST",
       url: "/api/v1/products",
       headers: { cookie },
-      payload: { sku: "PRD-API-001", name: "Produk API", type: "LM", costPrice: 70000, basePrice: 100000 }
+      payload: { sku: "PRD-API-001", name: "Produk API", type: "LM", stock: 10, costPrice: 70000, basePrice: 100000 }
     });
     expect(product.statusCode).toBe(201);
     const productId = product.json().data.id as string;

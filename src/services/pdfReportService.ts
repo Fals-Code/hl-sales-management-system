@@ -20,10 +20,18 @@ type Column = {
   value: (row: unknown) => string;
 };
 
+type Metric = {
+  label: string;
+  value: string;
+  tone: string;
+};
+
 const COLORS = {
   navy: "#123B5D",
+  navyDark: "#0B2942",
   blue: "#245E89",
   pale: "#EEF5F9",
+  paleBlue: "#F5F8FB",
   border: "#D7E1E8",
   text: "#1F2933",
   muted: "#647484",
@@ -33,13 +41,16 @@ const COLORS = {
   white: "#FFFFFF"
 };
 
+const PAGE_MARGIN = 34;
+const FOOTER_HEIGHT = 50;
+
 export function renderReportPdf(input: PdfReportInput) {
   return new Promise<Buffer>((resolve, reject) => {
     const landscape = input.kind !== "overall";
     const doc = new PDFDocument({
       size: "A4",
       layout: landscape ? "landscape" : "portrait",
-      margin: 38,
+      margin: PAGE_MARGIN,
       bufferPages: true,
       info: {
         Title: input.title,
@@ -53,183 +64,408 @@ export function renderReportPdf(input: PdfReportInput) {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    drawHeader(doc, input);
-    drawFilterStrip(doc, input.filters);
-    if (input.summary) drawSummary(doc, input.summary, landscape ? 3 : 2);
-    if (input.rows) drawRows(doc, input.kind, input.rows);
-    drawFooters(doc);
+    drawReportHeader(doc, input);
+    drawReportMeta(doc, input);
+
+    if (input.summary) {
+      drawSummary(doc, input.summary, landscape ? 4 : 2);
+    }
+
+    if (input.rows) {
+      drawRows(doc, input, input.rows);
+    }
+
+    drawReportNote(doc, input.kind);
+    drawFooters(doc, input.title);
     doc.end();
   });
 }
 
-function drawHeader(doc: PDFKit.PDFDocument, input: PdfReportInput) {
-  const left = doc.page.margins.left;
+function drawReportHeader(doc: PDFKit.PDFDocument, input: PdfReportInput) {
+  const x = doc.page.margins.left;
+  const y = doc.y;
   const width = contentWidth(doc);
-  doc.roundedRect(left, doc.y, width, 70, 10).fill(COLORS.navy);
-  const top = doc.y + 14;
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(10).text("HL SALES MANAGEMENT", left + 18, top, { characterSpacing: 0.8 });
-  doc.fontSize(19).text(input.title, left + 18, top + 17, { width: width - 220 });
-  if (input.subtitle) doc.font("Helvetica").fontSize(8.5).fillColor("#DDEAF2").text(input.subtitle, left + 18, top + 43, { width: width - 220 });
-  const generated = formatDateTime(new Date());
-  doc.font("Helvetica").fontSize(8).fillColor("#DDEAF2").text("Dibuat", left + width - 170, top + 5, { width: 150, align: "right" });
-  doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.white).text(generated, left + width - 170, top + 20, { width: 150, align: "right" });
-  doc.y += 84;
+  const height = 74;
+
+  doc.roundedRect(x, y, width, height, 10).fill(COLORS.navyDark);
+  doc.roundedRect(x, y, 92, height, 10).fill(COLORS.navy);
+
+  textAt(doc, "HL", x + 18, y + 13, {
+    width: 56,
+    font: "Helvetica-Bold",
+    fontSize: 22,
+    color: COLORS.white
+  });
+  textAt(doc, "INTERNAL", x + 18, y + 43, {
+    width: 56,
+    font: "Helvetica-Bold",
+    fontSize: 7,
+    color: "#DDEAF2",
+    characterSpacing: 0.8
+  });
+
+  textAt(doc, input.title.toUpperCase(), x + 112, y + 13, {
+    width: width - 300,
+    font: "Helvetica-Bold",
+    fontSize: 17,
+    color: COLORS.white
+  });
+  textAt(doc, input.subtitle ?? "Dokumen laporan internal", x + 112, y + 39, {
+    width: width - 300,
+    font: "Helvetica",
+    fontSize: 8.2,
+    color: "#DDEAF2"
+  });
+
+  textAt(doc, "DIBUAT", x + width - 160, y + 14, {
+    width: 138,
+    align: "right",
+    font: "Helvetica-Bold",
+    fontSize: 7,
+    color: "#BFD3E1",
+    characterSpacing: 0.6
+  });
+  textAt(doc, formatDateTime(new Date()), x + width - 160, y + 31, {
+    width: 138,
+    align: "right",
+    font: "Helvetica-Bold",
+    fontSize: 8.5,
+    color: COLORS.white
+  });
+  textAt(doc, "IDR (Rp) | Tanpa PPN", x + width - 160, y + 51, {
+    width: 138,
+    align: "right",
+    font: "Helvetica",
+    fontSize: 7.4,
+    color: "#DDEAF2"
+  });
+
+  doc.y = y + height + 14;
   doc.fillColor(COLORS.text);
 }
 
-function drawFilterStrip(doc: PDFKit.PDFDocument, filters?: ReportFilters) {
-  const values = filterLabels(filters);
-  if (!values.length) return;
-  const left = doc.page.margins.left;
+function drawReportMeta(doc: PDFKit.PDFDocument, input: PdfReportInput) {
+  const x = doc.page.margins.left;
+  const y = doc.y;
   const width = contentWidth(doc);
-  doc.roundedRect(left, doc.y, width, 28, 7).fill(COLORS.pale);
-  doc.fillColor(COLORS.muted).font("Helvetica").fontSize(8.5).text(values.join("   |   "), left + 12, doc.y + 9, { width: width - 24 });
-  doc.y += 39;
-  doc.fillColor(COLORS.text);
+  const labels = filterLabels(input.filters);
+  const period = labels.length ? labels.join("  |  ") : "Semua periode dan seluruh data aktif";
+
+  doc.roundedRect(x, y, width, 42, 7).fill(COLORS.pale);
+  textAt(doc, "PARAMETER LAPORAN", x + 12, y + 8, {
+    width: 112,
+    font: "Helvetica-Bold",
+    fontSize: 7,
+    color: COLORS.blue,
+    characterSpacing: 0.5
+  });
+  wrappedTextAt(doc, period, x + 12, y + 21, {
+    width: width - 24,
+    height: 15,
+    font: "Helvetica",
+    fontSize: 8,
+    color: COLORS.text,
+    ellipsis: true
+  });
+
+  doc.y = y + 53;
 }
 
 function drawSummary(doc: PDFKit.PDFDocument, summary: unknown, columns: number) {
   const metrics = summaryMetrics(summary);
   if (!metrics.length) return;
-  sectionTitle(doc, "Ringkasan");
-  const left = doc.page.margins.left;
-  const gap = 10;
+
+  sectionHeading(doc, "Ringkasan Eksekutif", "Nilai utama sesuai filter laporan");
+
+  const gap = 8;
+  const cardHeight = 50;
+  const rows = Math.ceil(metrics.length / columns);
+  const blockHeight = rows * cardHeight + (rows - 1) * gap;
+  ensureSpace(doc, blockHeight + 12);
+
+  const x = doc.page.margins.left;
+  const y = doc.y;
   const width = (contentWidth(doc) - gap * (columns - 1)) / columns;
-  const height = 52;
+
   metrics.forEach((metric, index) => {
     const column = index % columns;
     const row = Math.floor(index / columns);
-    const x = left + column * (width + gap);
-    const y = doc.y + row * (height + gap);
-    doc.roundedRect(x, y, width, height, 8).lineWidth(0.7).fillAndStroke(COLORS.white, COLORS.border);
-    doc.fillColor(COLORS.muted).font("Helvetica").fontSize(7.5).text(metric.label, x + 12, y + 10, { width: width - 24 });
-    doc.fillColor(metric.tone).font("Helvetica-Bold").fontSize(13).text(metric.value, x + 12, y + 26, { width: width - 24, ellipsis: true });
+    const cardX = x + column * (width + gap);
+    const cardY = y + row * (cardHeight + gap);
+    drawMetricCard(doc, cardX, cardY, width, cardHeight, metric);
   });
-  const rows = Math.ceil(metrics.length / columns);
-  doc.y += rows * (height + gap) + 6;
-  doc.fillColor(COLORS.text);
+
+  doc.y = y + blockHeight + 14;
 }
 
-function drawRows(doc: PDFKit.PDFDocument, kind: PdfReportKind, rows: unknown[]) {
-  sectionTitle(doc, kind === "bonus-log" ? "Riwayat Bonus" : "Rincian Transaksi");
+function drawMetricCard(doc: PDFKit.PDFDocument, x: number, y: number, width: number, height: number, metric: Metric) {
+  doc.roundedRect(x, y, width, height, 7).lineWidth(0.6).fillAndStroke(COLORS.white, COLORS.border);
+  doc.rect(x, y, 4, height).fill(metric.tone);
+
+  wrappedTextAt(doc, metric.label, x + 12, y + 8, {
+    width: width - 22,
+    height: 17,
+    font: "Helvetica",
+    fontSize: 7.2,
+    color: COLORS.muted,
+    ellipsis: true
+  });
+  textAt(doc, metric.value, x + 12, y + 28, {
+    width: width - 22,
+    font: "Helvetica-Bold",
+    fontSize: 11.3,
+    color: COLORS.text
+  });
+}
+
+function drawRows(doc: PDFKit.PDFDocument, input: PdfReportInput, rows: unknown[]) {
+  const title = input.kind === "bonus-log" ? "Riwayat Bonus" : "Rincian Transaksi";
+  sectionHeading(doc, title, `${rows.length.toLocaleString("id-ID")} baris data`);
+
   if (!rows.length) {
-    const left = doc.page.margins.left;
-    doc.roundedRect(left, doc.y, contentWidth(doc), 46, 8).fill(COLORS.pale);
-    doc.fillColor(COLORS.muted).font("Helvetica").fontSize(9).text("Tidak ada data pada filter yang dipilih.", left + 14, doc.y + 18);
-    doc.y += 58;
+    const x = doc.page.margins.left;
+    const y = doc.y;
+    doc.roundedRect(x, y, contentWidth(doc), 50, 8).fill(COLORS.paleBlue);
+    textAt(doc, "Tidak ada data pada filter yang dipilih.", x + 15, y + 19, {
+      width: contentWidth(doc) - 30,
+      font: "Helvetica",
+      fontSize: 9,
+      color: COLORS.muted
+    });
+    doc.y = y + 64;
     return;
   }
-  const columns = kind === "bonus-log" ? bonusColumns() : transactionColumns();
-  drawTable(doc, columns, rows);
+
+  const columns = input.kind === "bonus-log" ? bonusColumns() : transactionColumns();
+  drawTable(doc, columns, rows, input.title);
 }
 
-function drawTable(doc: PDFKit.PDFDocument, columns: Column[], rows: unknown[]) {
-  const left = doc.page.margins.left;
+function drawTable(doc: PDFKit.PDFDocument, columns: Column[], rows: unknown[], documentTitle: string) {
+  const x = doc.page.margins.left;
   const width = contentWidth(doc);
   const totalWeight = columns.reduce((sum, column) => sum + column.width, 0);
   const widths = columns.map((column) => width * column.width / totalWeight);
+
   const drawHeaderRow = () => {
     ensureSpace(doc, 27);
     const y = doc.y;
-    doc.rect(left, y, width, 25).fill(COLORS.navy);
-    let x = left;
+    doc.rect(x, y, width, 25).fill(COLORS.navy);
+
+    let columnX = x;
     columns.forEach((column, index) => {
-      doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7.2).text(column.label, x + 7, y + 8, { width: widths[index] - 14, align: column.align ?? "left" });
-      x += widths[index];
+      textAt(doc, column.label, columnX + 6, y + 8, {
+        width: widths[index] - 12,
+        align: column.align ?? "left",
+        font: "Helvetica-Bold",
+        fontSize: 7,
+        color: COLORS.white
+      });
+      columnX += widths[index];
     });
+
     doc.y = y + 25;
   };
 
   drawHeaderRow();
+
   rows.forEach((row, rowIndex) => {
     const values = columns.map((column) => column.value(row));
-    const heights = values.map((value, index) => doc.font("Helvetica").fontSize(7.7).heightOfString(value, { width: widths[index] - 14, lineGap: 1 }));
-    const rowHeight = Math.max(27, Math.max(...heights) + 13);
+    const heights = values.map((value, index) => {
+      doc.font(index === 0 ? "Helvetica-Bold" : "Helvetica").fontSize(7.4);
+      return doc.heightOfString(value, { width: widths[index] - 12, lineGap: 1 });
+    });
+    const rowHeight = Math.max(27, Math.min(54, Math.max(...heights) + 12));
+
     if (doc.y + rowHeight > pageBottom(doc)) {
       doc.addPage();
+      drawContinuationHeader(doc, documentTitle);
       drawHeaderRow();
     }
+
     const y = doc.y;
-    if (rowIndex % 2 === 1) doc.rect(left, y, width, rowHeight).fill("#F8FAFB");
-    let x = left;
+    if (rowIndex % 2 === 1) doc.rect(x, y, width, rowHeight).fill(COLORS.paleBlue);
+
+    let columnX = x;
     columns.forEach((column, index) => {
-      doc.fillColor(COLORS.text).font(index === 0 ? "Helvetica-Bold" : "Helvetica").fontSize(7.7).text(values[index], x + 7, y + 7, { width: widths[index] - 14, align: column.align ?? "left", lineGap: 1 });
-      x += widths[index];
+      wrappedTextAt(doc, values[index], columnX + 6, y + 7, {
+        width: widths[index] - 12,
+        height: rowHeight - 11,
+        align: column.align ?? "left",
+        font: index === 0 ? "Helvetica-Bold" : "Helvetica",
+        fontSize: 7.4,
+        color: COLORS.text,
+        lineGap: 1,
+        ellipsis: true
+      });
+
+      if (index > 0) {
+        doc.moveTo(columnX, y).lineTo(columnX, y + rowHeight).lineWidth(0.3).strokeColor(COLORS.border).stroke();
+      }
+      columnX += widths[index];
     });
-    doc.moveTo(left, y + rowHeight).lineTo(left + width, y + rowHeight).lineWidth(0.4).strokeColor(COLORS.border).stroke();
+
+    doc.moveTo(x, y + rowHeight).lineTo(x + width, y + rowHeight).lineWidth(0.4).strokeColor(COLORS.border).stroke();
     doc.y = y + rowHeight;
   });
-  doc.y += 8;
+
+  doc.y += 12;
+}
+
+function drawContinuationHeader(doc: PDFKit.PDFDocument, title: string) {
+  const x = doc.page.margins.left;
+  const y = doc.y;
+  const width = contentWidth(doc);
+
+  textAt(doc, "HL SALES MANAGEMENT", x, y, {
+    width: width * 0.55,
+    font: "Helvetica-Bold",
+    fontSize: 8,
+    color: COLORS.navy
+  });
+  textAt(doc, `${title} - lanjutan`, x + width * 0.55, y, {
+    width: width * 0.45,
+    align: "right",
+    font: "Helvetica",
+    fontSize: 7.5,
+    color: COLORS.muted
+  });
+  doc.moveTo(x, y + 15).lineTo(x + width, y + 15).lineWidth(0.6).strokeColor(COLORS.border).stroke();
+  doc.y = y + 25;
+}
+
+function drawReportNote(doc: PDFKit.PDFDocument, kind: PdfReportKind) {
+  const note = kind === "bonus-log"
+    ? "Saldo bonus mengikuti mutasi ledger: perolehan, penggunaan, pembalikan, dan penyesuaian yang sah."
+    : "Basis laporan: omzet, laba, dan pembayaran mengikuti Tanggal Pelunasan. Piutang mengikuti Tanggal Bon. Ongkir tidak dihitung sebagai omzet atau laba.";
+
+  ensureSpace(doc, 54);
+  const x = doc.page.margins.left;
+  const y = doc.y;
+  const width = contentWidth(doc);
+
+  doc.roundedRect(x, y, width, 42, 7).fill(COLORS.pale);
+  textAt(doc, "CATATAN METODOLOGI", x + 12, y + 8, {
+    width: 126,
+    font: "Helvetica-Bold",
+    fontSize: 7,
+    color: COLORS.blue,
+    characterSpacing: 0.4
+  });
+  wrappedTextAt(doc, note, x + 12, y + 21, {
+    width: width - 24,
+    height: 15,
+    font: "Helvetica",
+    fontSize: 7.5,
+    color: COLORS.text,
+    ellipsis: true
+  });
+
+  doc.y = y + 52;
+}
+
+function drawFooters(doc: PDFKit.PDFDocument, title: string) {
+  const range = doc.bufferedPageRange();
+
+  for (let pageIndex = range.start; pageIndex < range.start + range.count; pageIndex += 1) {
+    doc.switchToPage(pageIndex);
+    const x = doc.page.margins.left;
+    const width = contentWidth(doc);
+    const y = doc.page.height - doc.page.margins.bottom - 10;
+
+    doc.moveTo(x, y - 8).lineTo(x + width, y - 8).lineWidth(0.45).strokeColor(COLORS.border).stroke();
+    textAt(doc, `INTERNAL | HL Sales Management | ${title}`, x, y, {
+      width: width * 0.72,
+      font: "Helvetica",
+      fontSize: 6.8,
+      color: COLORS.muted
+    });
+    textAt(doc, `Halaman ${pageIndex - range.start + 1} dari ${range.count}`, x + width * 0.72, y, {
+      width: width * 0.28,
+      align: "right",
+      font: "Helvetica-Bold",
+      fontSize: 6.8,
+      color: COLORS.muted
+    });
+  }
+}
+
+function sectionHeading(doc: PDFKit.PDFDocument, title: string, helper: string) {
+  ensureSpace(doc, 31);
+  const x = doc.page.margins.left;
+  const y = doc.y;
+  const width = contentWidth(doc);
+
+  textAt(doc, title, x, y, {
+    width: width * 0.62,
+    font: "Helvetica-Bold",
+    fontSize: 10.5,
+    color: COLORS.navy
+  });
+  textAt(doc, helper, x + width * 0.62, y + 1, {
+    width: width * 0.38,
+    align: "right",
+    font: "Helvetica",
+    fontSize: 7.2,
+    color: COLORS.muted
+  });
+  doc.moveTo(x, y + 17).lineTo(x + width, y + 17).lineWidth(0.55).strokeColor(COLORS.border).stroke();
+  doc.y = y + 26;
 }
 
 function transactionColumns(): Column[] {
   return [
     { label: "Nomor Bon", width: 1.25, value: (row) => textField(row, "bonNumber") },
-    { label: "Pelanggan", width: 1.45, value: (row) => nestedText(row, "customer", "name") },
-    { label: "Tanggal Acuan", width: 1, value: (row) => transactionDate(row) },
-    { label: "Status", width: 0.75, value: (row) => statusLabel(textField(row, "status")) },
-    { label: "Scope", width: 0.65, value: (row) => productScope(row), align: "center" },
-    { label: "Total", width: 1.1, value: (row) => formatMoney(field(row, "totalAmount")), align: "right" }
+    { label: "Pelanggan", width: 1.35, value: (row) => nestedText(row, "customer", "name") },
+    { label: "Tanggal Acuan", width: 0.9, value: (row) => transactionDate(row) },
+    { label: "Status", width: 0.7, value: (row) => statusLabel(textField(row, "status")), align: "center" },
+    { label: "Kategori", width: 0.65, value: (row) => productScope(row), align: "center" },
+    { label: "Omzet", width: 0.95, value: (row) => formatMoney(field(row, "totalAfterDiscount")), align: "right" },
+    { label: "Total Tagihan", width: 1.05, value: (row) => formatMoney(field(row, "totalAmount")), align: "right" }
   ];
 }
 
 function bonusColumns(): Column[] {
   return [
-    { label: "Tanggal", width: 1, value: (row) => formatDate(field(row, "createdAt")) },
-    { label: "Pelanggan", width: 1.5, value: (row) => nestedText(row, "customer", "name") },
-    { label: "Mutasi", width: 0.9, value: (row) => mutationLabel(textField(row, "mutationType")) },
-    { label: "Unit", width: 0.65, value: (row) => numberText(field(row, "amount")), align: "right" },
-    { label: "Saldo", width: 0.65, value: (row) => numberText(field(row, "balanceAfter")), align: "right" },
-    { label: "Keterangan", width: 2.2, value: (row) => textField(row, "reason") || "-" }
+    { label: "Tanggal", width: 0.9, value: (row) => formatDate(field(row, "createdAt")) },
+    { label: "Pelanggan", width: 1.35, value: (row) => nestedText(row, "customer", "name") },
+    { label: "Mutasi", width: 0.85, value: (row) => mutationLabel(textField(row, "mutationType")) },
+    { label: "Unit", width: 0.55, value: (row) => numberText(field(row, "amount")), align: "right" },
+    { label: "Saldo", width: 0.55, value: (row) => numberText(field(row, "balanceAfter")), align: "right" },
+    { label: "Keterangan", width: 2.15, value: (row) => textField(row, "reason") || "-" }
   ];
 }
 
-function sectionTitle(doc: PDFKit.PDFDocument, title: string) {
-  ensureSpace(doc, 32);
-  doc.fillColor(COLORS.navy).font("Helvetica-Bold").fontSize(11).text(title);
-  doc.moveDown(0.45);
-  doc.strokeColor(COLORS.border).lineWidth(0.7).moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
-  doc.moveDown(0.7);
-}
-
-function drawFooters(doc: PDFKit.PDFDocument) {
-  const range = doc.bufferedPageRange();
-  for (let index = range.start; index < range.start + range.count; index += 1) {
-    doc.switchToPage(index);
-    const y = doc.page.height - 24;
-    doc.strokeColor(COLORS.border).lineWidth(0.5).moveTo(doc.page.margins.left, y - 8).lineTo(doc.page.width - doc.page.margins.right, y - 8).stroke();
-    doc.fillColor(COLORS.muted).font("Helvetica").fontSize(7).text("HL Sales Management - Dokumen laporan sistem", doc.page.margins.left, y, { width: contentWidth(doc) / 2 });
-    doc.text(`Halaman ${index - range.start + 1} dari ${range.count}`, doc.page.width / 2, y, { width: contentWidth(doc) / 2, align: "right" });
-  }
-}
-
-function summaryMetrics(summary: unknown) {
+function summaryMetrics(summary: unknown): Metric[] {
   const record = asRecord(summary);
   const definitions = [
     ["totalPiutang", "Piutang (Estimasi/Belum Diakui)", true, COLORS.warning],
-    ["activePaymentAmount", "Pembayaran Aktif", true, COLORS.success],
     ["totalPaid", "Sudah Dibayar", true, COLORS.success],
     ["totalRevenue", "Omzet Diakui", true, COLORS.blue],
     ["totalProfit", "Laba HL Diakui", true, COLORS.navy],
     ["totalRevenueLm", "Omzet LM", true, COLORS.blue],
     ["totalRevenueBr", "Omzet BR", true, COLORS.blue],
     ["totalBonusCost", "Biaya Bonus", true, COLORS.danger],
+    ["negativeProfitTransactions", "Transaksi Laba Negatif", false, COLORS.danger],
     ["totalBon", "Jumlah Bon", false, COLORS.navy],
     ["bonusAvailable", "Bonus Tersedia", false, COLORS.success],
-    ["negativeProfitTransactions", "Transaksi Laba Negatif", false, COLORS.danger],
     ["voidBonCount", "Bon Void", false, COLORS.danger]
   ] as const;
+
   return definitions
     .filter(([key]) => record[key] !== undefined)
-    .slice(0, 9)
-    .map(([key, label, currency, tone]) => ({ label, value: currency ? formatMoney(record[key]) : numberText(record[key]), tone }));
+    .slice(0, 8)
+    .map(([key, label, currency, tone]) => ({
+      label,
+      value: currency ? formatMoney(record[key]) : numberText(record[key]),
+      tone
+    }));
 }
 
 function filterLabels(filters?: ReportFilters) {
   if (!filters) return [];
   const labels: string[] = [];
   if (filters.month && filters.year) labels.push(`Periode: ${monthName(filters.month)} ${filters.year}`);
-  if (filters.productType) labels.push(`Scope: ${filters.productType}`);
+  if (filters.productType) labels.push(`Kategori: ${filters.productType}`);
   if (filters.status) labels.push(`Status: ${statusLabel(filters.status)}`);
   if (filters.bonDateFrom || filters.bonDateTo) labels.push(`Tanggal Bon: ${formatDate(filters.bonDateFrom)} s.d. ${formatDate(filters.bonDateTo)}`);
   if (filters.paidAtFrom || filters.paidAtTo) labels.push(`Tanggal Pelunasan: ${formatDate(filters.paidAtFrom)} s.d. ${formatDate(filters.paidAtTo)}`);
@@ -249,12 +485,17 @@ function transactionDate(row: unknown) {
 }
 
 function mutationLabel(value: string) {
-  const labels: Record<string, string> = { EARNED: "Diperoleh", USED: "Digunakan", REVERSED: "Dikembalikan", ADJUSTMENT: "Penyesuaian" };
+  const labels: Record<string, string> = {
+    EARNED: "Diperoleh",
+    USED: "Digunakan",
+    REVERSED: "Dikembalikan",
+    ADJUSTMENT: "Penyesuaian"
+  };
   return labels[value] ?? value ?? "-";
 }
 
 function statusLabel(value: string) {
-  const labels: Record<string, string> = { PIUTANG: "Piutang", LUNAS: "Lunas", VOID: "Void" };
+  const labels: Record<string, string> = { PIUTANG: "Piutang", LUNAS: "Lunas", VOID: "Void", BONUS: "Bonus" };
   return labels[value] ?? value ?? "-";
 }
 
@@ -271,23 +512,35 @@ function moneyNumber(value: unknown) {
 }
 
 function numberText(value: unknown) {
-  const numeric = moneyNumber(value);
-  return Math.round(numeric).toLocaleString("id-ID");
+  return Math.round(moneyNumber(value)).toLocaleString("id-ID");
 }
 
 function formatDate(value: unknown) {
   if (!value) return "-";
   const date = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(date);
 }
 
 function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(date);
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta"
+  }).format(date);
 }
 
 function monthName(month: number) {
-  return new Intl.DateTimeFormat("id-ID", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, month - 1, 1)));
+  return new Intl.DateTimeFormat("id-ID", { month: "long", timeZone: "UTC" })
+    .format(new Date(Date.UTC(2026, month - 1, 1)));
 }
 
 function field(value: unknown, key: string): unknown {
@@ -307,12 +560,48 @@ function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
 }
 
+function textAt(
+  doc: PDFKit.PDFDocument,
+  value: string,
+  x: number,
+  y: number,
+  options: PDFKit.Mixins.TextOptions & { font?: string; fontSize?: number; color?: string } = {}
+) {
+  const previousX = doc.x;
+  const previousY = doc.y;
+  const { font, fontSize, color, ...textOptions } = options;
+  if (font) doc.font(font);
+  if (fontSize) doc.fontSize(fontSize);
+  if (color) doc.fillColor(color);
+  doc.text(value, x, y, { ...textOptions, lineBreak: false });
+  doc.x = previousX;
+  doc.y = previousY;
+}
+
+function wrappedTextAt(
+  doc: PDFKit.PDFDocument,
+  value: string,
+  x: number,
+  y: number,
+  options: PDFKit.Mixins.TextOptions & { font?: string; fontSize?: number; color?: string } = {}
+) {
+  const previousX = doc.x;
+  const previousY = doc.y;
+  const { font, fontSize, color, ...textOptions } = options;
+  if (font) doc.font(font);
+  if (fontSize) doc.fontSize(fontSize);
+  if (color) doc.fillColor(color);
+  doc.text(value, x, y, textOptions);
+  doc.x = previousX;
+  doc.y = previousY;
+}
+
 function contentWidth(doc: PDFKit.PDFDocument) {
   return doc.page.width - doc.page.margins.left - doc.page.margins.right;
 }
 
 function pageBottom(doc: PDFKit.PDFDocument) {
-  return doc.page.height - doc.page.margins.bottom - 24;
+  return doc.page.height - FOOTER_HEIGHT - 16;
 }
 
 function ensureSpace(doc: PDFKit.PDFDocument, height: number) {

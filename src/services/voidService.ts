@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { AuthService } from "./authService";
 import { BonusService } from "./bonusService";
+import { lockInventoryRows, restoreInventory } from "./inventoryService";
 import { AUTHORIZATION_TYPE } from "../domain/constants";
 import { BusinessError } from "../domain/errors";
 import { toSafeMoneyNumber } from "../domain/money";
@@ -10,10 +11,15 @@ export class VoidService {
 
   async voidPaidBon(input: { bonId: string; userId: string; ownerPin: string; reason: string }) {
     return this.db.$transaction(async (tx) => {
-      const bon = await tx.bon.findUnique({ where: { id: input.bonId }, include: { paymentLinks: true } });
+      await lockBonRow(tx, input.bonId);
+      const bon = await tx.bon.findUnique({
+        where: { id: input.bonId },
+        include: { paymentLinks: true, items: true }
+      });
       if (!bon) throw new BusinessError("Bon not found.");
       if (bon.status !== "LUNAS") throw new BusinessError("Only Lunas Bon can be voided through this process.");
       if (!input.reason.trim()) throw new BusinessError("Void reason is required.");
+      if (bon.inventoryAppliedAt) await lockInventoryRows(tx, bon.items);
 
       const scopedAuth = new AuthService(tx as unknown as PrismaClient);
       const authorization = await scopedAuth.authorizeOwner({
@@ -26,9 +32,13 @@ export class VoidService {
 
       const voided = await tx.bon.updateMany({
         where: { id: bon.id, status: "LUNAS" },
-        data: { status: "VOID", voidedAt: new Date() }
+        data: { status: "VOID", voidedAt: new Date(), inventoryAppliedAt: null }
       });
       if (voided.count !== 1) throw new BusinessError("Bon has already changed state and cannot be voided.");
+
+      if (bon.inventoryAppliedAt) {
+        await restoreInventory(tx, bon.items);
+      }
 
       const bonusService = new BonusService(tx);
       await bonusService.reverseBonUsage({
@@ -81,4 +91,13 @@ export class VoidService {
       return tx.bon.findUniqueOrThrow({ where: { id: bon.id }, include: { voidRecord: true } });
     });
   }
+}
+
+async function lockBonRow(tx: Prisma.TransactionClient, bonId: string) {
+  await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "Bon"
+    WHERE "id" = ${bonId}
+    FOR UPDATE
+  `;
 }

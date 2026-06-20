@@ -2,6 +2,8 @@ import { Bell, Home, LogOut, Menu, Plus, Settings, Users, WalletCards, X } from 
 import { BrandLogo } from "./BrandLogo";
 import { MobileNavButton } from "./components";
 import { navigation, type PageKey } from "./data";
+import { NotificationCenter } from "./NotificationCenter";
+import { useNotifications } from "./notification-store";
 
 type AppSidebarProps = {
   activePage: PageKey;
@@ -41,20 +43,17 @@ type AppTopbarProps = {
   description: string;
   comfortableMode?: boolean;
   notificationOpen: boolean;
-  notificationCount: number;
-  receivableCount: number;
-  eligibleBonusCount: number;
   onOpenMobile: () => void;
   onToggleComfort?: () => void;
   onCreateBon: () => void;
   onToggleNotifications: () => void;
-  onGoReceivables: () => void;
-  onGoBonus: () => void;
   onOpenSettings: () => void;
   onLogout: () => void;
 };
 
-export function AppTopbar({ title, description, notificationOpen, notificationCount, receivableCount, eligibleBonusCount, onOpenMobile, onCreateBon, onToggleNotifications, onGoReceivables, onGoBonus, onOpenSettings, onLogout }: AppTopbarProps) {
+export function AppTopbar({ title, description, notificationOpen, onOpenMobile, onCreateBon, onToggleNotifications, onOpenSettings, onLogout }: AppTopbarProps) {
+  const { unreadCount } = useNotifications();
+
   return <header className="topbar topbar--simple">
     <button className="icon-button mobile-menu-button" type="button" onClick={onOpenMobile} aria-label="Buka menu"><Menu size={25} /></button>
 
@@ -66,8 +65,8 @@ export function AppTopbar({ title, description, notificationOpen, notificationCo
     <div className="topbar-actions topbar-actions--simple">
       <button className="button button--primary topbar-create-button" type="button" onClick={onCreateBon}><Plus size={20} /><span>Buat Bon</span></button>
       <div className="notification-wrap">
-        <button className="icon-button notification-button" type="button" aria-label={`${notificationCount} notifikasi`} aria-expanded={notificationOpen} onClick={onToggleNotifications}><Bell size={22} />{notificationCount > 0 && <span className="notification-count">{notificationCount}</span>}</button>
-        {notificationOpen && <div className="notification-panel"><strong>Perlu perhatian</strong><button type="button" onClick={onGoReceivables}><WalletCards size={20} /><span><strong>{receivableCount} Bon Piutang</strong><small>Periksa jadwal penagihan.</small></span></button><button type="button" onClick={onGoBonus}><Plus size={20} /><span><strong>{eligibleBonusCount} pelanggan eligible bonus</strong><small>Buat Bonus Bon terpisah.</small></span></button></div>}
+        <button className="icon-button notification-button" type="button" aria-label={`${unreadCount} notifikasi belum dibaca`} aria-expanded={notificationOpen} onClick={onToggleNotifications}><Bell size={22} />{unreadCount > 0 && <span className="notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}</button>
+        <NotificationCenter open={notificationOpen} onClose={onToggleNotifications} />
       </div>
 
       <div

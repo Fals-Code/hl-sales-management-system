@@ -17,6 +17,7 @@ model User {
   sessions       Session[]
   authorizations AuthorizationRecord[]
   bonusThresholdHistories BonusThresholdHistory[] @relation("BonusThresholdChangedBy")
+  notifications  Notification[]
 }
 
 model Session {
@@ -88,6 +89,7 @@ model Product {
   sku       String?     @unique
   name      String
   type      String
+  stock     Int         @default(0)
   costPrice BigInt
   basePrice BigInt
   createdAt DateTime    @default(now())
@@ -110,6 +112,7 @@ model Bon {
   settledAt         DateTime?
   voidedAt          DateTime?
   deletedAt         DateTime?
+  inventoryAppliedAt DateTime?
   shippingCost      BigInt    @default(0)
   description       String?
   totalBeforeDiscount BigInt  @default(0)
@@ -133,6 +136,7 @@ model Bon {
   @@index([bonDate])
   @@index([settledAt])
   @@index([deletedAt])
+  @@index([inventoryAppliedAt])
 }
 
 model BonItem {
@@ -256,4 +260,28 @@ model VoidRecord {
   voidedAt        DateTime @default(now())
 
   @@index([voidedAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey    String
+  category    String
+  severity    String
+  title       String
+  message     String
+  targetUrl   String?
+  entityType  String?
+  entityId    String   @default("global")
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  dismissedAt DateTime?
+  expiresAt   DateTime?
+
+  @@unique([userId, eventKey, entityId])
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, dismissedAt])
+  @@index([expiresAt])
 }
