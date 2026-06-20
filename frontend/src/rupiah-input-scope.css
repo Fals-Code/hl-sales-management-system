@@ -1,0 +1,47 @@
+.rupiah-input-scope {
+  display: contents;
+}
+
+.field--rupiah-plain {
+  position: relative;
+}
+
+.field--rupiah-plain > input[data-rupiah-plain="true"] {
+  padding-left: 46px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.field--rupiah-plain::after {
+  content: "Rp";
+  position: absolute;
+  left: 13px;
+  top: 39px;
+  z-index: 1;
+  color: var(--muted);
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.bon-summary-shipping dd {
+  position: relative;
+}
+
+.bon-summary-shipping dd::before {
+  content: "Rp";
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  z-index: 1;
+  color: var(--muted);
+  font-weight: 800;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.bon-summary-shipping input[data-rupiah-plain="true"] {
+  width: 156px;
+  padding-left: 38px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
