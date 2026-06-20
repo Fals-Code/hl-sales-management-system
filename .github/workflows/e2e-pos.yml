@@ -82,5 +82,7 @@ jobs:
           name: playwright-api-report
           path: |
             frontend/playwright-api-report
+            frontend/playwright-notification-report
             frontend/test-results-api
+            frontend/test-results-notification
           if-no-files-found: ignore
