@@ -36,6 +36,16 @@ describe("calculation engine", () => {
     expect(loss.hasNegativeProfit).toBe(true);
   });
 
+  it("does not require loss authorization when one line loses money but the transaction total remains positive", () => {
+    const result = calculateBon([
+      { productName: "Loss line", productType: "LM", costPrice: 65000, basePrice: 63400, quantity: 1 },
+      { productName: "Profit line", productType: "BR", costPrice: 120000, basePrice: 171000, quantity: 1 }
+    ]);
+    expect(result.items[0].profitAmount).toBe(-1600);
+    expect(result.profitAmount).toBe(49400);
+    expect(result.hasNegativeProfit).toBe(false);
+  });
+
   it("keeps bonus item at Rp0 and does not affect HL profit or negative-profit flag", () => {
     const result = calculateBon([{ productName: "Bonus", productType: "BR", costPrice: 10000, basePrice: 50000, quantity: 2, kind: ITEM_KIND.BONUS }]);
     expect(result.totalAmount).toBe(0);
