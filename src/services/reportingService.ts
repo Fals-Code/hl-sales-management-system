@@ -22,10 +22,11 @@ export class ReportingService {
   async overall(filters: ReportFilters = {}) {
     const voidWhere = buildBonWhere({ ...filters, status: "VOID" }, "bon");
 
-    const [totalPiutang, activeAllocations, historicalPayments, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
+    const [totalPiutang, activeAllocations, historicalPayments, activeBonusCost, voidCount, canceledPaymentCount, negativeCount, usedUnits] = await Promise.all([
       this.getPiutangTotal(filters),
       this.db.paymentBon.findMany({ where: buildPaymentBonWhere(filters), include: { bon: { include: { items: true } }, payment: true } }),
       this.db.payment.aggregate({ where: buildPaymentWhere(filters, true), _sum: { historicalPaymentAmount: true } }),
+      this.getActiveBonusCost(filters),
       this.db.bon.count({ where: voidWhere }),
       this.db.payment.count({ where: { ...buildPaymentWhere(filters, true), canceledAt: { not: null } } }),
       this.db.bon.count({ where: { ...buildBonWhere(filters, "bon"), hasNegativeProfit: true, deletedAt: null } }),
@@ -44,7 +45,7 @@ export class ReportingService {
       totalProfit: paid.profitAmount,
       totalShipping: paid.shippingCost,
       totalBonusGiven: usedUnits,
-      totalBonusCost: paid.bonusCost,
+      totalBonusCost: activeBonusCost,
       negativeProfitTransactions: negativeCount,
       voidBonCount: voidCount,
       canceledPaymentCount
@@ -53,10 +54,11 @@ export class ReportingService {
 
   async byCustomer(customerId: string, filters: ReportFilters = {}) {
     const customerFilters = { ...filters, customerId };
-    const [totalBon, totalPiutang, activeAllocations, negativeCount, bonus] = await Promise.all([
+    const [totalBon, totalPiutang, activeAllocations, activeBonusCost, negativeCount, bonus] = await Promise.all([
       this.db.bon.count({ where: buildBonWhere(customerFilters, "bon") }),
       this.getPiutangTotal(customerFilters),
       this.db.paymentBon.findMany({ where: buildPaymentBonWhere(customerFilters), include: { bon: { include: { items: true } }, payment: true } }),
+      this.getActiveBonusCost(customerFilters),
       this.db.bon.count({ where: { ...buildBonWhere(customerFilters, "bon"), hasNegativeProfit: true } }),
       new BonusService(this.db).getAvailability(customerId)
     ]);
@@ -74,7 +76,7 @@ export class ReportingService {
       bonusAvailable: bonus.availableUnits,
       bonusEntitled: bonus.entitledUnits,
       bonusAlreadyGiven: bonus.usedUnits,
-      totalBonusCost: paid.bonusCost,
+      totalBonusCost: activeBonusCost,
       negativeProfitTransactions: negativeCount
     };
   }
@@ -114,11 +116,17 @@ export class ReportingService {
   }
 
   async transactionRows(filters: ReportFilters = {}) {
-    return this.db.bon.findMany({
+    const rows = await this.db.bon.findMany({
       where: buildBonWhere(filters, "bon"),
       include: { customer: true, items: true, paymentLinks: { include: { payment: true } }, voidRecord: true },
       orderBy: [{ bonDate: "desc" }, { bonNumber: "desc" }]
     });
+    return rows.map((bon) => ({
+      ...bon,
+      status: bon.status !== "VOID" && bon.items.length > 0 && bon.items.every((item) => item.isBonus)
+        ? "BONUS"
+        : bon.status
+    }));
   }
 
   async receivableRows(filters: ReportFilters = {}) {
@@ -153,6 +161,29 @@ export class ReportingService {
       _sum: { subtotal: true }
     });
     return toSafeMoneyNumber(result._sum.subtotal, "totalPiutangScoped");
+  }
+
+  private async getActiveBonusCost(filters: ReportFilters) {
+    if (filters.status === "VOID") return 0;
+    const bonDate = buildDateRange(filters.bonDateFrom, filters.bonDateTo)
+      ?? (filters.month && filters.year ? monthRange(filters.month, filters.year) : undefined);
+    const items = await this.db.bonItem.findMany({
+      where: {
+        isBonus: true,
+        ...(filters.productType ? { productTypeSnapshot: filters.productType } : {}),
+        bon: {
+          deletedAt: null,
+          ...(filters.status ? { status: filters.status } : { status: { not: "VOID" } }),
+          ...(filters.customerId ? { customerId: filters.customerId } : {}),
+          ...(bonDate ? { bonDate } : {})
+        }
+      },
+      select: { costPriceSnapshot: true, quantity: true }
+    });
+    return items.reduce(
+      (sum, item) => sum + toSafeMoneyNumber(item.costPriceSnapshot, "costPriceSnapshot") * item.quantity,
+      0
+    );
   }
 
   private async getNetUsedBonusUnits(filters: ReportFilters) {
