@@ -1,10 +1,14 @@
-type BrowserLocation = Pick<Location, "hostname">;
+type BrowserLocation = Pick<Location, "hostname" | "origin">;
 
 export function resolveApiBaseUrl(configuredBaseUrl: string | undefined, location: BrowserLocation) {
   const rawBaseUrl = configuredBaseUrl?.trim() || "http://localhost:3000";
 
+  if (rawBaseUrl === "/" || rawBaseUrl === "." || rawBaseUrl === "./") {
+    return location.origin.replace(/\/$/, "");
+  }
+
   try {
-    const apiUrl = new URL(rawBaseUrl);
+    const apiUrl = new URL(rawBaseUrl, location.origin);
     const browserHost = location.hostname;
 
     if (
