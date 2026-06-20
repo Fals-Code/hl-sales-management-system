@@ -146,7 +146,7 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   await createDialog.getByRole("button", { name: "Simpan Bon" }).click();
   await expect(createDialog.getByRole("heading", { name: bonNumber })).toBeVisible();
   await capture(page, testInfo, "flow-created-bon");
-  await createDialog.getByRole("button", { name: "Selesai" }).click();
+  await createDialog.getByRole("button", { name: "Kembali ke daftar transaksi" }).click();
 
   await page.goto(`/#/bon/${encodeURIComponent(bonNumber)}`);
   await waitForApp(page);
@@ -200,7 +200,7 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
     await bonusDialog.getByRole("button", { name: "Simpan Bon" }).click();
     await expect(bonusDialog.getByRole("heading", { name: bonusNumber })).toBeVisible();
     await capture(page, testInfo, "flow-created-bonus-bon");
-    await bonusDialog.getByRole("button", { name: "Selesai" }).click();
+    await bonusDialog.getByRole("button", { name: "Kembali ke daftar transaksi" }).click();
   }
 
   await page.goto("/#/reports");
