@@ -24,11 +24,12 @@ test("backend notification appears in the center without reloading", async ({ pa
   const bell = page.locator(".notification-button");
   await expect(bell).toHaveAttribute("aria-label", /[1-9]\d* notifikasi belum dibaca/);
   await bell.click();
-  await expect(page.getByRole("region", { name: "Pusat notifikasi" })).toBeVisible();
-  await expect(page.getByText("Produk berhasil ditambahkan", { exact: true })).toBeVisible();
-  await expect(page.getByText(productName, { exact: false })).toBeVisible();
-  await expect(page.getByText("Stok produk menipis", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: /Tandai semua dibaca/ }).click();
-  await expect(page.getByText("0 belum dibaca", { exact: true })).toBeVisible();
+  const center = page.getByRole("region", { name: "Pusat notifikasi" });
+  await expect(center).toBeVisible();
+  await expect(center.getByRole("button", { name: new RegExp(`Produk berhasil ditambahkan ${productName}`) })).toBeVisible();
+  await expect(center.getByRole("button", { name: new RegExp(`Stok produk menipis ${productName}`) })).toBeVisible();
+
+  await center.getByRole("button", { name: /Tandai semua dibaca/ }).click();
+  await expect(center.getByText("0 belum dibaca", { exact: true })).toBeVisible();
 });
