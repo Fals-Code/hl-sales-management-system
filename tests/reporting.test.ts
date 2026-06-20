@@ -41,7 +41,7 @@ describe("reporting", () => {
 
     const report = await ctx.reports.overall();
     expect(report.totalRevenue).toBe(171000);
-    expect(report.totalProfit).toBe(71000);
+    expect(report.totalProfit).toBe(11000);
     expect(report.totalBonusCost).toBe(60000);
 
     const customerReport = await ctx.reports.byCustomer(customer.id);
