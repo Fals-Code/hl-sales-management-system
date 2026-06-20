@@ -47,6 +47,13 @@ async function fillLossAuthorization(dialog: Locator) {
   }
 }
 
+async function addFirstAvailableProduct(page: Page) {
+  const addButton = page.locator(".bon-product-option").getByRole("button", { name: "Tambah" }).first();
+  await expect(addButton).toBeVisible();
+  await addButton.click();
+  await expect(page.locator(".bon-cart-row")).toHaveCount(1);
+}
+
 test("keyboard-only login reaches dashboard", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -130,8 +137,10 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   await page.getByRole("button", { name: /Buat Bon/ }).first().click();
   const createDialog = page.getByRole("dialog");
   const numberInput = createDialog.locator("label.field").filter({ hasText: "Nomor Bon" }).locator("input");
+  await expect(numberInput).toHaveValue(/^BON-\d{8}-\d{3}$/);
   const bonNumber = await numberInput.inputValue();
   await createDialog.locator("label.field").filter({ hasText: "Deskripsi" }).locator("textarea").fill("Regression Phase 5");
+  await addFirstAvailableProduct(page);
   await fillLossAuthorization(createDialog);
   await expect(createDialog.getByRole("button", { name: "Simpan Bon" })).toBeEnabled();
   await createDialog.getByRole("button", { name: "Simpan Bon" }).click();
@@ -184,8 +193,10 @@ test("create, edit, settle, cancel, settle again, Void, bonus, and report stay c
   if (await bonusButton.isEnabled()) {
     await bonusButton.click();
     const bonusDialog = page.getByRole("dialog");
-    const bonusNumber = await bonusDialog.locator("label.field").filter({ hasText: "Nomor Bon" }).locator("input").inputValue();
-    expect(bonusNumber).toMatch(/^BONUS-/);
+    const bonusNumberInput = bonusDialog.locator("label.field").filter({ hasText: "Nomor Bon" }).locator("input");
+    await expect(bonusNumberInput).toHaveValue(/^BONUS-\d{8}-\d{3}$/);
+    const bonusNumber = await bonusNumberInput.inputValue();
+    await addFirstAvailableProduct(page);
     await bonusDialog.getByRole("button", { name: "Simpan Bon" }).click();
     await expect(bonusDialog.getByRole("heading", { name: bonusNumber })).toBeVisible();
     await capture(page, testInfo, "flow-created-bonus-bon");
