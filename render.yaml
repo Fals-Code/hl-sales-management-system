@@ -35,8 +35,6 @@ services:
         value: "43200"
       - key: APP_USERNAME
         value: owner
-      - key: FRONTEND_ORIGIN
-        sync: false
       - key: DATABASE_URL
         sync: false
       - key: APP_PASSWORD
