@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "build": "tsc --noEmit",
     "dev": "tsx watch src/api/server.ts",
@@ -13,6 +16,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:reset:test": "prisma migrate reset --force --skip-seed",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:production": "tsx prisma/seed-production.ts",
     "test": "vitest run",
     "test:api": "vitest run tests/api",
     "lint": "eslint src prisma tests",
