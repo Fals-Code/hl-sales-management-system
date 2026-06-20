@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: hl-sales-management-app
+    runtime: node
+    plan: free
+    region: singapore
+    branch: phase-6-release
+    autoDeployTrigger: off
+    buildCommand: >-
+      npm ci &&
+      npm run db:generate &&
+      npm --prefix frontend ci &&
+      npm --prefix frontend run build
+    startCommand: >-
+      npm run db:migrate:deploy &&
+      npm run db:seed:production &&
+      npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_FRONTEND
+        value: "true"
+      - key: VITE_USE_API
+        value: "true"
+      - key: VITE_API_BASE_URL
+        value: "/"
+      - key: SESSION_COOKIE_NAME
+        value: hl_session
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SESSION_MAX_AGE
+        value: "43200"
+      - key: APP_USERNAME
+        value: owner
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: OWNER_PIN
+        sync: false
