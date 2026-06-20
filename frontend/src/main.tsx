@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./AppV3";
+import { useApi } from "./api-client";
 import { installResourceNotificationBridge } from "./resource-notification-bridge";
 import { installSuccessToastNotificationBridge } from "./notification-success-bridge";
 import { AppStoreProvider } from "./store";
@@ -34,8 +35,11 @@ import "./pos-page-extras.css";
 import "./pdf-document-preview.css";
 import "./notification-system.css";
 
-installSuccessToastNotificationBridge();
-installResourceNotificationBridge();
+// Mock mode keeps the original local event bridge. API mode receives authoritative events from PostgreSQL and the realtime stream.
+if (!useApi) {
+  installSuccessToastNotificationBridge();
+  installResourceNotificationBridge();
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
