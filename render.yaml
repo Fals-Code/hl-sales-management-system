@@ -9,7 +9,7 @@ services:
     buildCommand: >-
       npm ci &&
       npm run db:generate &&
-      npm --prefix frontend ci &&
+      npm --prefix frontend install --no-audit --no-fund &&
       npm --prefix frontend run build
     startCommand: >-
       npm run db:migrate:deploy &&
