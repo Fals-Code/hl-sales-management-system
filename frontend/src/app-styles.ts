@@ -26,5 +26,4 @@ import "./bon-create-dialog.css";
 import "./pos-page-extras.css";
 import "./pdf-document-preview.css";
 import "./notification-system.css";
-import "./rupiah-input-scope.css";
 import "./settlement-checkbox-fix.css";
