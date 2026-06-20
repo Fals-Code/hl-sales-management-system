@@ -11,12 +11,35 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: ApiContext) {
     const body = loginSchema.parse(request.body);
     const session = await ctx.auth.login(body.username, body.password);
     reply.setCookie(ctx.cookieName, session.token, { ...ctx.cookieOptions, expires: session.expiresAt });
+    await ctx.notifications.publish({
+      userId: session.userId,
+      eventKey: "auth-login",
+      category: "SECURITY",
+      severity: "INFO",
+      title: "Login berhasil",
+      message: "Sesi pengguna berhasil dimulai.",
+      targetUrl: "#/settings",
+      entityId: "global",
+      expiresAt: new Date(Date.now() + 7 * 86_400_000)
+    }).catch(() => undefined);
     return send(reply, { userId: session.userId, expiresAt: session.expiresAt });
   });
 
   app.post("/api/v1/auth/logout", async (request, reply) => {
     const token = request.cookies[ctx.cookieName];
+    const userId = (request as AuthenticatedRequest).userId;
     if (token) await ctx.auth.logout(token);
+    await ctx.notifications.publish({
+      userId,
+      eventKey: "auth-logout",
+      category: "SECURITY",
+      severity: "INFO",
+      title: "Logout berhasil",
+      message: "Sesi pengguna telah diakhiri.",
+      targetUrl: "#/settings",
+      entityId: "global",
+      expiresAt: new Date(Date.now() + 7 * 86_400_000)
+    }).catch(() => undefined);
     reply.clearCookie(ctx.cookieName, { path: "/" });
     return send(reply, {});
   });
