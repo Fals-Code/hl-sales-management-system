@@ -77,12 +77,17 @@ export function RupiahInput({
     background: disabled ? "#f3f5f7" : wrapperBaseStyle.background,
     opacity: disabled ? 0.78 : 1
   };
+  const suppliedAriaLabel = inputProps["aria-label"];
+  const ariaLabel = typeof suppliedAriaLabel === "string" && !suppliedAriaLabel.trim().endsWith("*")
+    ? `${suppliedAriaLabel} *`
+    : suppliedAriaLabel;
 
   return (
     <div className={wrapperClass} style={wrapperStyle}>
       <span className="rupiah-input__prefix" style={prefixStyle} aria-hidden="true">Rp</span>
       <input
         {...inputProps}
+        aria-label={ariaLabel}
         type="text"
         inputMode="numeric"
         pattern="[0-9.]*"
