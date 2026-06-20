@@ -36,13 +36,19 @@ export function registerNotificationRoutes(app: FastifyInstance, ctx: ApiContext
 
   app.get("/api/v1/notifications/stream", async (request, reply) => {
     const userId = (request as AuthenticatedRequest).userId;
+    const origin = request.headers.origin;
     reply.hijack();
     const response = reply.raw;
     response.writeHead(200, {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "X-Accel-Buffering": "no"
+      "X-Accel-Buffering": "no",
+      ...(origin ? {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        Vary: "Origin"
+      } : {})
     });
     response.write("event: ready\ndata: {}\n\n");
 
