@@ -2,9 +2,9 @@
 
 ## Tujuan
 
-Satu pusat notifikasi yang dapat dipakai seluruh modul tanpa membuat logika notifikasi terpisah di setiap halaman. Sistem harus membedakan informasi biasa, keberhasilan, peringatan, dan kondisi kritis.
+Satu pusat notifikasi untuk seluruh modul tanpa menggandakan logika di setiap halaman. Sistem membedakan informasi biasa, keberhasilan, peringatan, dan kondisi kritis.
 
-## Struktur notifikasi
+## Kontrak
 
 ```ts
 type AppNotification = {
@@ -26,7 +26,7 @@ type AppNotification = {
 
 ## Sumber event
 
-- Bon berhasil dibuat, diedit, dilunasi, dibatalkan, atau di-Void.
+- Bon dibuat, diedit, dilunasi, dibatalkan, dihapus, atau di-Void.
 - Nomor Bon duplikat atau transaksi gagal disimpan.
 - Piutang melewati umur yang ditentukan.
 - Pembayaran dibatalkan atau memerlukan otorisasi Owner.
@@ -35,88 +35,77 @@ type AppNotification = {
 - Transaksi menghasilkan laba negatif.
 - Sesi berakhir, API tidak dapat dihubungi, atau sinkronisasi gagal.
 
-## Tampilan
+## Arsitektur final Phase 5
 
-### Notification Center
+### Backend persistence
 
-Panel dari ikon lonceng di topbar dengan:
+Riwayat notifikasi disimpan pada tabel `Notification`. Backend menyediakan:
 
-- jumlah notifikasi belum dibaca;
-- filter `Semua`, `Belum dibaca`, dan kategori;
-- aksi `Tandai semua dibaca`;
-- setiap item dapat membuka halaman atau entitas terkait;
-- notifikasi kritis tidak hilang hanya karena panel ditutup.
+- `GET /api/v1/notifications` untuk list, filter mode, kategori, limit, dan cursor;
+- `POST /api/v1/notifications/:id/read`;
+- `POST /api/v1/notifications/read-all`;
+- `DELETE /api/v1/notifications/:id` untuk dismiss;
+- `GET /api/v1/notifications/stream` untuk Server-Sent Events.
 
-### Toast
+Akses dibatasi oleh session pengguna. SSE memakai heartbeat dan unsubscribe saat koneksi ditutup.
 
-Dipakai untuk hasil aksi langsung:
+### Frontend
 
-- `SUCCESS`: data berhasil disimpan;
-- `WARNING`: aksi berhasil tetapi memerlukan perhatian;
-- `CRITICAL`: kegagalan yang menghentikan proses;
-- toast tidak menggantikan error di dalam form.
+Frontend menyediakan:
+
+- notification center dari ikon lonceng;
+- badge jumlah belum dibaca;
+- filter Semua, Belum dibaca, dan kategori;
+- aksi Tandai semua dibaca;
+- dismiss;
+- navigasi ke Bon, produk, bonus, pembayaran, atau modul terkait;
+- toast untuk feedback aksi langsung;
+- sinkronisasi event baru melalui SSE;
+- fallback event transport untuk session expired, timeout, dan network error.
+
+Local state dipakai untuk pengalaman UI dan optimistic feedback, sedangkan riwayat authoritative berasal dari backend.
 
 ## Aturan agar tidak berisik
 
-- Deduplikasi berdasarkan `eventKey + entityId`.
-- Notifikasi stok rendah diperbarui, bukan dibuat ulang setiap refresh.
-- Notifikasi informasi dapat kedaluwarsa otomatis.
-- Notifikasi kritis hanya dapat ditutup setelah dibaca atau kondisinya selesai.
-- Badge topbar menghitung notifikasi belum dibaca, bukan seluruh riwayat.
+- Deduplikasi memakai `eventKey + entityId` atau kunci domain yang setara.
+- Notifikasi kondisi diperbarui, bukan dibuat tanpa batas pada setiap refresh.
+- Notifikasi informasi dapat kedaluwarsa.
+- Notifikasi kritis tetap terlihat sampai dibaca atau kondisinya selesai.
+- Badge menghitung notifikasi belum dibaca, bukan seluruh riwayat.
+- Kondisi yang sudah selesai tidak boleh terus menghasilkan event baru.
 
-## Tahap implementasi
+## Konfigurasi awal
 
-1. **Frontend foundation**: context/store notifikasi, toast, notification center, local persistence.
-2. **Backend persistence**: tabel `Notification` dan endpoint list/read/dismiss.
-3. **Domain events**: penerbitan event dari Bon, Payment, Inventory, Bonus, dan Auth.
-4. **Realtime opsional**: SSE agar notifikasi masuk tanpa reload.
-5. **Channel eksternal opsional**: email atau WhatsApp hanya untuk event kritis yang dipilih Owner.
-
-## Prioritas event awal
-
-1. Stok habis atau stok rendah.
-2. Piutang jatuh tempo.
-3. Pelanggan eligible bonus.
-4. Laba negatif menunggu otorisasi.
-5. Pembayaran dibatalkan atau Bon di-Void.
-6. Koneksi backend dan sesi pengguna bermasalah.
-
-## Keputusan implementasi saat ini
-
-Aplikasi HL adalah aplikasi internal single-user. Untuk menjaga Phase 5 tetap stabil, implementasi awal memakai **frontend foundation dengan local persistence** dan notifikasi kondisi dihitung dari data bootstrap yang authoritative. Pendekatan ini dipilih agar pusat notifikasi langsung berguna tanpa menambah tabel serta coupling transaksi baru menjelang UAT.
-
-Konfigurasi awal:
-
-- umur Piutang: 30 hari;
+- Piutang berumur: 30 hari;
 - stok rendah: 5 unit atau kurang;
 - stok habis: 0 unit;
-- kondisi bonus memakai saldo bonus hasil backend;
-- kondisi laba negatif memakai snapshot transaksi;
-- kegagalan jaringan dan sesi diterbitkan dari API client;
-- notifikasi kondisi otomatis hilang ketika kondisi sumber selesai;
-- status dibaca dan ditutup disimpan pada `localStorage`.
+- eligibility bonus: saldo authoritative backend;
+- laba negatif: transaction snapshot;
+- kegagalan jaringan dan sesi: API client;
+- realtime: SSE endpoint backend.
 
 ## Status implementasi
 
 ### Selesai
 
-- kontrak `AppNotification` terpusat;
-- notification store dan toast queue;
-- local persistence untuk status read/dismiss;
-- deduplikasi `eventKey + entityId`;
-- badge jumlah belum dibaca;
-- filter Semua, Belum dibaca, dan kategori;
-- Tandai semua dibaca;
-- navigasi ke Bon, produk, bonus, atau modul terkait;
-- proteksi notifikasi kritis agar dibaca sebelum ditutup;
-- event stok rendah/habis, Piutang berumur, bonus tersedia, laba negatif, Void, session expired, timeout, dan network error;
-- unit test derivasi notifikasi.
+- kontrak notifikasi terpusat;
+- tabel dan migration `Notification`;
+- notification service dan domain service;
+- endpoint list/read/read-all/dismiss;
+- SSE stream dan heartbeat;
+- persistence lintas refresh;
+- category, severity, target entity, read state, dan dismiss state;
+- notification center dan toast queue;
+- badge, filter, dan Tandai semua dibaca;
+- event transaksi, pembayaran, inventory, bonus, security, dan system;
+- unit serta integration test persistence dan subscriber.
 
-### Ditunda ke tahap lanjutan
+### Opsional setelah Phase 6
 
-- tabel `Notification` di backend;
-- endpoint list/read/dismiss;
-- SSE;
-- email atau WhatsApp.
+- email;
+- WhatsApp;
+- push notification perangkat;
+- configurable threshold per user;
+- retention policy dan archival notifikasi jangka panjang.
 
-Backend persistence bukan syarat output Phase 5 pada dokumen fase proyek. Fitur tersebut dapat dikerjakan pada Phase 6 atau setelah UAT apabila Owner membutuhkan riwayat notifikasi lintas browser/perangkat.
+Channel eksternal tidak menjadi syarat acceptance criteria aplikasi internal single-user. Fitur itu hanya boleh ditambahkan apabila kebutuhan operasionalnya jelas, bukan karena seseorang melihat diagram arsitektur lalu merasa semua kotak harus diisi.
