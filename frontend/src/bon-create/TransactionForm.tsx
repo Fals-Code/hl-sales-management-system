@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowLeft, PackagePlus, Plus, ReceiptText, Save, Search, Trash2 } from "lucide-react";
 import type { AcceptanceBonLine, CustomerProfile, ProductProfile } from "../acceptance-data";
 import { formatCurrency } from "../data";
+import { RupiahInput } from "../rupiah-input";
 import type { BonCalculation, LineCalculation, Mode } from "./types";
 
 export type TransactionFormProps = {
@@ -116,7 +117,7 @@ export function TransactionForm(props: TransactionFormProps) {
             <div><dt>Jumlah produk</dt><dd>{lines.length}</dd></div>
             <div><dt>Total unit</dt><dd>{calculation.quantity}</dd></div>
             <div><dt>Subtotal produk</dt><dd>{formatCurrency(calculation.omzet)}</dd></div>
-            {mode === "normal" && <div className="bon-summary-shipping"><dt>Ongkir</dt><dd><input aria-label="Ongkir" type="number" min={0} value={shipping} onChange={(event) => props.onShippingChange(Number(event.target.value))} /></dd></div>}
+            {mode === "normal" && <div className="bon-summary-shipping"><dt>Ongkir</dt><dd><RupiahInput compact aria-label="Ongkir" value={shipping} onValueChange={props.onShippingChange} /></dd></div>}
             {mode === "normal" && <div className={calculation.profit < 0 ? "is-negative" : ""}><dt>Laba internal</dt><dd>{formatCurrency(calculation.profit)}</dd></div>}
           </dl>
           <div className="bon-summary-total"><span>Total {mode === "bonus" ? "Tagihan" : "Piutang"}</span><strong>{formatCurrency(calculation.total)}</strong></div>
