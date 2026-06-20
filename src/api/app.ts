@@ -78,19 +78,24 @@ export async function buildApp(
       String(request.headers["x-request-id"] ?? randomUUID()),
   });
 
-  const configuredFrontendOrigins = (process.env.FRONTEND_ORIGIN ?? "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const configuredFrontendOrigins = new Set(
+    [
+      ...(process.env.FRONTEND_ORIGIN ?? "").split(","),
+      process.env.SPACE_HOST ? `https://${process.env.SPACE_HOST}` : "",
+    ]
+      .map(normalizeOrigin)
+      .filter(Boolean),
+  );
 
   app.setErrorHandler(errorHandler);
   await app.register(cookie);
   await app.register(helmet);
   await app.register(cors, {
     origin: (origin, callback) => {
+      const normalizedOrigin = normalizeOrigin(origin);
       if (
         !origin ||
-        configuredFrontendOrigins.includes(origin) ||
+        configuredFrontendOrigins.has(normalizedOrigin) ||
         isLocalDevelopmentOrigin(origin)
       ) {
         callback(null, true);
@@ -191,6 +196,16 @@ export async function buildApp(
   if (serveFrontend) registerFrontendRoutes(app);
 
   return app;
+}
+
+function normalizeOrigin(origin: string | undefined) {
+  if (!origin) return "";
+  const value = origin.trim().replace(/^["']|["']$/g, "").replace(/\/+$/, "");
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
 }
 
 function isLocalDevelopmentOrigin(origin: string) {
