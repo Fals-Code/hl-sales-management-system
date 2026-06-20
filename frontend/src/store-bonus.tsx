@@ -1,6 +1,7 @@
 import { BarChart3, FileText, Gift, Info, ReceiptText, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { bonusesAvailable, calculateBon, toDisplayDate } from "./acceptance-data";
+import { useApi } from "./api-client";
 import { formatCurrency } from "./data";
 import type { StoredCustomerWithHistory } from "./resource-mappers";
 import { useAppStore } from "./store";
@@ -8,7 +9,10 @@ import { useAppStore } from "./store";
 export function StoreBonus({ onCreateBonusBon }: { onCreateBonusBon: (customerCode: string) => void }) {
   const { customers, bons } = useAppStore();
   const activeCustomers = customers.filter((customer) => customer.active) as StoredCustomerWithHistory[];
-  const eligibleCustomers = activeCustomers.filter((customer) => bonusesAvailable(customer) > 0);
+  const availableFor = (customer: StoredCustomerWithHistory) => useApi
+    ? Math.max(0, (customer.bonusHistory ?? []).reduce((sum, entry) => sum + entry.amount, 0))
+    : bonusesAvailable(customer);
+  const eligibleCustomers = activeCustomers.filter((customer) => availableFor(customer) > 0);
   const [selectedCode, setSelectedCode] = useState(eligibleCustomers[0]?.code ?? activeCustomers[0]?.code ?? "");
 
   useEffect(() => {
@@ -17,13 +21,11 @@ export function StoreBonus({ onCreateBonusBon }: { onCreateBonusBon: (customerCo
   }, [activeCustomers, eligibleCustomers, selectedCode]);
 
   const selectedCustomer = activeCustomers.find((customer) => customer.code === selectedCode) ?? activeCustomers[0];
-  const available = selectedCustomer ? bonusesAvailable(selectedCustomer) : 0;
-  const remainder = selectedCustomer && selectedCustomer.bonusThreshold > 0
-    ? selectedCustomer.accumulatedPaidOmzet % selectedCustomer.bonusThreshold
-    : 0;
+  const available = selectedCustomer ? availableFor(selectedCustomer) : 0;
   const bonusBons = selectedCustomer
-    ? bons.filter((bon) => !bon.deletedAt && bon.isBonus && bon.customerCode === selectedCustomer.code)
+    ? bons.filter((bon) => !bon.deletedAt && bon.isBonus && bon.customerCode === selectedCustomer.code && bon.status !== "Void")
     : [];
+  const grantedUnits = bonusBons.reduce((sum, bon) => sum + bon.lines.reduce((lineSum, line) => lineSum + line.quantity, 0), 0);
   const allBonusBons = bons.filter((bon) => !bon.deletedAt && bon.isBonus && bon.status !== "Void");
   const totalBonusCost = allBonusBons.reduce((sum, bon) => sum + calculateBon(bon).bonusCost, 0);
   const ledger = useMemo(
@@ -46,7 +48,7 @@ export function StoreBonus({ onCreateBonusBon }: { onCreateBonusBon: (customerCo
 
       <div className="acceptance-stat-grid">
         <Stat label="Pelanggan Eligible" value={`${eligibleCustomers.length} pelanggan`} helper="Memiliki bonus tersedia" icon={<Users size={23} />} />
-        <Stat label="Total Bonus Tersedia" value={`${eligibleCustomers.reduce((sum, customer) => sum + bonusesAvailable(customer), 0)} unit`} helper="Bisa dipakai dalam Bonus Bon" icon={<Gift size={23} />} />
+        <Stat label="Total Bonus Tersedia" value={`${eligibleCustomers.reduce((sum, customer) => sum + availableFor(customer), 0)} unit`} helper="Bisa dipakai dalam Bonus Bon" icon={<Gift size={23} />} />
         <Stat label="Bonus Bon Tercatat" value={`${allBonusBons.length} Bon`} helper="Dilaporkan terpisah" icon={<ReceiptText size={23} />} />
         <Stat label="Biaya Bonus/Promosi" value={formatCurrency(totalBonusCost)} helper="Tidak mengurangi Laba HL" icon={<BarChart3 size={23} />} />
       </div>
@@ -54,14 +56,14 @@ export function StoreBonus({ onCreateBonusBon }: { onCreateBonusBon: (customerCo
       <div className="acceptance-detail-layout">
         <section className="acceptance-card">
           <div className="acceptance-card-heading"><div><span className="eyebrow">Pelanggan eligible</span><h3>Bonus Tersedia</h3></div><Gift size={24} /></div>
-          {eligibleCustomers.length === 0 ? <div className="acceptance-inline-empty"><Gift size={30} /><span>Belum ada pelanggan yang memenuhi threshold.</span></div> : <div className="bonus-eligible-list">{eligibleCustomers.map((customer) => <button className={`bonus-eligible-row ${selectedCode === customer.code ? "is-selected" : ""}`} type="button" key={customer.code} onClick={() => setSelectedCode(customer.code)}><span className="customer-avatar">{customer.name.slice(0, 2).toUpperCase()}</span><span><strong>{customer.name}</strong><small>{formatCurrency(customer.accumulatedPaidOmzet)} omzet Lunas</small></span><strong>{bonusesAvailable(customer)} unit</strong></button>)}</div>}
+          {eligibleCustomers.length === 0 ? <div className="acceptance-inline-empty"><Gift size={30} /><span>Belum ada pelanggan yang memenuhi threshold.</span></div> : <div className="bonus-eligible-list">{eligibleCustomers.map((customer) => <button className={`bonus-eligible-row ${selectedCode === customer.code ? "is-selected" : ""}`} type="button" key={customer.code} onClick={() => setSelectedCode(customer.code)}><span className="customer-avatar">{customer.name.slice(0, 2).toUpperCase()}</span><span><strong>{customer.name}</strong><small>{formatCurrency(customer.accumulatedPaidOmzet)} omzet Lunas</small></span><strong>{availableFor(customer)} unit</strong></button>)}</div>}
         </section>
 
         <aside className="acceptance-card bonus-acceptance-summary">
           <span className="eyebrow">Pelanggan dipilih</span>
           <h3>{selectedCustomer.name}</h3>
           <div className="bonus-big-number"><Gift size={30} /><div><strong>{available} unit</strong><span>bonus tersedia</span></div></div>
-          <dl className="bonus-rule-list"><div><dt>Threshold</dt><dd>{formatCurrency(selectedCustomer.bonusThreshold)}</dd></div><div><dt>Akumulasi omzet Lunas</dt><dd>{formatCurrency(selectedCustomer.accumulatedPaidOmzet)}</dd></div><div><dt>Sudah diberikan</dt><dd>{selectedCustomer.bonusesGranted} unit</dd></div><div><dt>Sisa akumulasi</dt><dd>{formatCurrency(remainder)}</dd></div></dl>
+          <dl className="bonus-rule-list"><div><dt>Threshold</dt><dd>{formatCurrency(selectedCustomer.bonusThreshold)}</dd></div><div><dt>Akumulasi omzet Lunas</dt><dd>{formatCurrency(selectedCustomer.accumulatedPaidOmzet)}</dd></div><div><dt>Sudah diberikan</dt><dd>{grantedUnits} unit</dd></div><div><dt>Saldo ledger</dt><dd>{available} unit</dd></div></dl>
           <button className="button button--primary button--full" type="button" disabled={available === 0} onClick={() => onCreateBonusBon(selectedCustomer.code)}><Gift size={20} />Buat Bonus Bon</button>
         </aside>
       </div>
