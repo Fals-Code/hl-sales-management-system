@@ -1,0 +1,89 @@
+.settlement-selection-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 15px 16px;
+  background: #fbfcfd;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.settlement-selection-card.is-selected {
+  border-color: #74a9cc;
+  background: #eef7fc;
+  box-shadow: 0 0 0 3px rgba(31, 78, 120, 0.08);
+}
+
+.settlement-selection-card > label {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.settlement-selection-card > label > input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settlement-selection-card .custom-checkbox {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid #97a6b5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #ffffff;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.settlement-selection-card > label > input[type="checkbox"]:focus-visible + .custom-checkbox {
+  outline: 3px solid rgba(31, 78, 120, 0.24);
+  outline-offset: 2px;
+}
+
+.settlement-selection-card > label > input[type="checkbox"]:checked + .custom-checkbox {
+  border-color: var(--primary);
+  background: var(--primary);
+  transform: scale(1.04);
+}
+
+.settlement-selection-card > label > span:nth-of-type(2) {
+  min-width: 0;
+}
+
+.settlement-selection-card > label > span:nth-of-type(2) strong,
+.settlement-selection-card > label > span:nth-of-type(2) small {
+  display: block;
+}
+
+.settlement-selection-card > label > span:nth-of-type(2) small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.settlement-selection-card > label > strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.settlement-selection-card > .text-button {
+  margin: 8px 0 0 40px;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 767px) {
+  .settlement-selection-card > label {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .settlement-selection-card > label > strong {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
