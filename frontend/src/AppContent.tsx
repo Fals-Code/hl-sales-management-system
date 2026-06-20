@@ -5,7 +5,7 @@ import type { PageKey } from "./data";
 import { FinalSettingsPage } from "./final-pages";
 import { StoreBonus } from "./store-bonus";
 import { StoreCustomers } from "./store-customers";
-import { StoreProducts } from "./store-products";
+import { StoreProducts } from "./store-products-rupiah";
 import { StoreReports } from "./store-reports";
 import { StoreSettlement } from "./store-settlement";
 
