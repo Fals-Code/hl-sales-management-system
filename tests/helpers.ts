@@ -58,6 +58,7 @@ function readDotEnvValue(key: string) {
 }
 
 export async function resetDb(db: PrismaClient) {
+  await db.notification.deleteMany();
   await db.voidRecord.deleteMany();
   await db.bonusLedger.deleteMany();
   await db.paymentBon.deleteMany();
