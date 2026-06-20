@@ -1,3 +1,13 @@
+---
+title: HL Sales Management
+emoji: 📊
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # HL Sales & Receivables Management App
 
 Aplikasi internal single-user untuk mengelola pelanggan, produk, transaksi Bon, Piutang, pelunasan, bonus, stok, notifikasi, laporan cash basis, dan PDF.
