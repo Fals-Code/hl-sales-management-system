@@ -9,13 +9,14 @@ import Fastify from "fastify";
 import { randomUUID } from "node:crypto";
 import { AuthService } from "../services/authService";
 import { BonusService } from "../services/bonusService";
-import { CustomerService } from "../services/customerService";
+import { CustomerNotificationService } from "../services/customerNotificationService";
+import { NotificationDomainService } from "../services/notificationDomainService";
 import { NotificationService } from "../services/notificationService";
-import { ProductService } from "../services/productService";
+import { ProductNotificationService } from "../services/productNotificationService";
 import { ReportingService } from "../services/reportingService";
-import { SettlementService } from "../services/settlementService";
-import { TransactionService } from "../services/transactionService";
-import { VoidService } from "../services/voidService";
+import { SettlementNotificationService } from "../services/settlementNotificationService";
+import { TransactionNotificationService } from "../services/transactionNotificationService";
+import { VoidNotificationService } from "../services/voidNotificationService";
 import { prisma } from "../lib/prisma";
 import { errorHandler } from "./errors/errorHandler";
 import { authHook } from "./middleware/auth";
@@ -37,16 +38,17 @@ export async function buildApp(
   const db = options.db ?? prisma;
   const auth = new AuthService(db);
   const notifications = new NotificationService(db);
+  const notificationDomain = new NotificationDomainService(db, notifications);
   const ctx: ApiContext = {
     db,
     auth,
-    customers: new CustomerService(db),
-    products: new ProductService(db),
-    transactions: new TransactionService(db, auth),
-    settlements: new SettlementService(db, auth),
+    customers: new CustomerNotificationService(db, notificationDomain),
+    products: new ProductNotificationService(db, notificationDomain),
+    transactions: new TransactionNotificationService(db, auth, notificationDomain),
+    settlements: new SettlementNotificationService(db, auth, notificationDomain),
     bonus: new BonusService(db),
     reports: new ReportingService(db),
-    voids: new VoidService(db, auth),
+    voids: new VoidNotificationService(db, auth, notificationDomain),
     notifications,
     cookieName: process.env.SESSION_COOKIE_NAME ?? "hl_session",
     cookieOptions: {
