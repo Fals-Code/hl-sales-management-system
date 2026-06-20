@@ -11,4 +11,11 @@ describe("Rupiah input formatting", () => {
     expect(parseRupiahInput("Rp 12.500.000")).toBe(12_500_000);
     expect(parseRupiahInput("1.250")).toBe(1_250);
   });
+
+  it("does not reset when the value crosses the thousand separator", () => {
+    expect(parseRupiahInput("123")).toBe(123);
+    expect(parseRupiahInput("1.230")).toBe(1_230);
+    expect(formatRupiahInput(parseRupiahInput("1230"))).toBe("1.230");
+    expect(formatRupiahInput(parseRupiahInput("10000"))).toBe("10.000");
+  });
 });
