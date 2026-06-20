@@ -1,0 +1,79 @@
+name: Apply Phase 6 Lint Fixes
+
+on:
+  pull_request:
+    branches:
+      - phase-5-api-integration
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixes:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Apply targeted fixes
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          pdf_path = Path("src/services/pdfReportService.ts")
+          pdf = pdf_path.read_text(encoding="utf-8")
+          replacements = {
+              '  const date = value instanceof Date ? value : new Date(String(value));': '''  const date = value instanceof Date
+              ? value
+              : typeof value === "string" || typeof value === "number"
+                ? new Date(value)
+                : new Date(Number.NaN);''',
+              '  return result === null || result === undefined ? "" : String(result);': '''  if (result === null || result === undefined) return "";
+            if (typeof result === "string") return result;
+            if (typeof result === "number" || typeof result === "bigint" || typeof result === "boolean") {
+              return result.toString();
+            }
+            if (result instanceof Date) return result.toISOString();
+            return "";'''
+          }
+          for old, new in replacements.items():
+              if old not in pdf:
+                  raise SystemExit(f"Expected PDF source pattern not found: {old}")
+              pdf = pdf.replace(old, new, 1)
+          pdf_path.write_text(pdf, encoding="utf-8")
+
+          test_path = Path("tests/notificationSystem.test.ts")
+          test = test_path.read_text(encoding="utf-8")
+          replacements = {
+              '    const payload = list.json().data as { items: Array<{ id: string; eventKey: string }>; unreadCount: number };': '    const payload = list.json<{ data: { items: Array<{ id: string; eventKey: string }>; unreadCount: number } }>().data;',
+              '    expect(read.json().data.readAt).toBeTruthy();': '    expect(read.json<{ data: { readAt: string | null } }>().data.readAt).toBeTruthy();',
+              '    expect(unread.json().data.items.some((item: { id: string }) => item.id === first.id)).toBe(false);': '    const unreadPayload = unread.json<{ data: { items: Array<{ id: string }> } }>().data;\n    expect(unreadPayload.items.some((item) => item.id === first.id)).toBe(false);',
+              '    expect(finalList.json().data.unreadCount).toBe(0);\n    expect(finalList.json().data.items.some((item: { id: string }) => item.id === dismissTarget!.id)).toBe(false);': '    const finalPayload = finalList.json<{ data: { unreadCount: number; items: Array<{ id: string }> } }>().data;\n    expect(finalPayload.unreadCount).toBe(0);\n    expect(finalPayload.items.some((item) => item.id === dismissTarget!.id)).toBe(false);'
+          }
+          for old, new in replacements.items():
+              if old not in test:
+                  raise SystemExit(f"Expected notification test pattern not found: {old}")
+              test = test.replace(old, new, 1)
+          test_path.write_text(test, encoding="utf-8")
+
+          for temporary in [
+              Path(".github/workflows/diagnose-phase6-readiness.yml"),
+              Path(".github/workflows/diagnose-phase6-pr.yml"),
+              Path(".github/workflows/apply-phase6-lint-fixes.yml"),
+              Path(".phase6-readiness-trigger"),
+          ]:
+              if temporary.exists():
+                  temporary.unlink()
+          PY
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: clear Phase 6 readiness lint gate"
+          git push origin HEAD:${{ github.head_ref }}
