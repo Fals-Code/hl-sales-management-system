@@ -18,7 +18,7 @@ function formatValue(value: string) {
 }
 
 function markMoneyInput(input: HTMLInputElement) {
-  if (input.dataset.rupiahPlain === "true" || input.closest(".rupiah-input")) return;
+  if (input.closest(".rupiah-input")) return;
   const label = input.closest("label");
   const text = `${label?.textContent ?? ""} ${input.getAttribute("aria-label") ?? ""}`;
   if (!moneyPattern.test(text)) return;
@@ -26,12 +26,17 @@ function markMoneyInput(input: HTMLInputElement) {
   input.type = "text";
   input.inputMode = "numeric";
   label?.classList.add("field--rupiah-plain");
-  setInputValue(input, formatValue(input.value));
+  if (document.activeElement !== input) setInputValue(input, formatValue(input.value));
 }
 
-function markMoneyInputs(root: HTMLElement) {
-  if (root instanceof HTMLInputElement) markMoneyInput(root);
-  root.querySelectorAll<HTMLInputElement>("input").forEach(markMoneyInput);
+function syncMoneyInputs(root: HTMLElement) {
+  root.querySelectorAll<HTMLInputElement>("input").forEach((input) => {
+    markMoneyInput(input);
+    if (input.dataset.rupiahPlain !== "true") return;
+    input.type = "text";
+    input.inputMode = "numeric";
+    if (document.activeElement !== input) setInputValue(input, formatValue(input.value));
+  });
 }
 
 export function RupiahInputScope({ children }: { children: ReactNode }) {
@@ -40,14 +45,15 @@ export function RupiahInputScope({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const current = root.current;
     if (!current) return;
-    markMoneyInputs(current);
-    const observer = new MutationObserver((records) => {
-      records.forEach((record) => record.addedNodes.forEach((node) => {
-        if (node instanceof HTMLElement) markMoneyInputs(node);
-      }));
-    });
+    const sync = () => syncMoneyInputs(current);
+    sync();
+    const observer = new MutationObserver(sync);
     observer.observe(current, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    const interval = window.setInterval(sync, 150);
+    return () => {
+      observer.disconnect();
+      window.clearInterval(interval);
+    };
   }, []);
 
   const normalize = (event: FormEvent<HTMLDivElement>) => {
@@ -56,7 +62,12 @@ export function RupiahInputScope({ children }: { children: ReactNode }) {
     markMoneyInput(input);
     if (input.dataset.rupiahPlain !== "true") return;
     setInputValue(input, onlyDigits(input.value));
-    queueMicrotask(() => input.isConnected && setInputValue(input, formatValue(input.value)));
+    queueMicrotask(() => {
+      if (!input.isConnected) return;
+      input.type = "text";
+      input.inputMode = "numeric";
+      setInputValue(input, formatValue(input.value));
+    });
   };
 
   return <div ref={root} className="rupiah-input-scope" onInputCapture={normalize}>{children}</div>;
